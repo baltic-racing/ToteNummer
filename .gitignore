@@ -1,0 +1,12 @@
+/Debug/
+/Release/
+/.settings/
+*.o
+*.d
+*.elf
+*.map
+*.bin
+*.hex
+*.log
+*.bak
+*.swp
