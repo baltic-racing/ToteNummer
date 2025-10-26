@@ -30,6 +30,15 @@
 
 extern uint8_t TxHeader;
 extern uint8_t hcan;
+
+void CAN_TX(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData){
+	if(*can_exe_flag == 0){ // can_exe_flag = 0 => 0= Can wurde noch nicht gestartet, 1 => Can wurde bereits gestartet
+		HAL_CAN_Start(hcan);
+		HAL_CAN_ActiveNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+		(*can_exe_flag)++;
+	}
+}
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

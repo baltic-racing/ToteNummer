@@ -34,7 +34,7 @@ void MX_CAN1_Init(void)
   /* USER CODE BEGIN CAN1_Init 0 */
 
 // TxHeader
-//CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
+//CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8}; => steht in main.c
 //CAN_TxHeaderTypeDef AMS1_header = {0x201, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
 //CAN_TxHeaderTypeDef AMS2_header = {0x210, 0 , CAN_ID_STD, CAN_RTR_DATA, 8};
 
@@ -71,6 +71,18 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 		CAN_TX(hcan, TxHeader, TxData);
 	}
 
+}
+	// receive CAN message
+void CAN_RX(CAN_HandleTypeDef hcan)
+{
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t RxData[8];
+
+	if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+	{
+
+
+	}
 }
 
 /*
