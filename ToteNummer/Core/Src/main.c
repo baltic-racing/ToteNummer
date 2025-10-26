@@ -23,14 +23,13 @@
 #include "tim.h"
 #include "usb_device.h"
 #include "gpio.h"
-
-extern uint8_t TxHeader;
-extern uint8_t hcan;
-extern uint8_t TxData;
+#include "stm32f2xx_hal_can.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+extern uint8_t TxHeader;
+extern uint8_t hcan;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,6 +50,10 @@ extern uint8_t TxData;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint8_t LED_State = 0;
+// CAN bus
+CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
+uint8_t TxData[8];
 
 /* USER CODE END PV */
 
@@ -121,7 +124,17 @@ int main(void)
   {
 	  gpio();
 	  //ErrorLed_Task(); damit wird ein Fehler angezeigt
-	  CAN_TX(hcan1, 0x200<<5, LED_state);
+	  TxData[0] = 0;
+	  TxData[1] = 0;
+	  TxData[2] = 0;
+	  TxData[3] = 0;
+	  TxData[4] = LED_State;
+	  TxData[5] = 0;
+	  TxData[6] = 0;
+	  TxData[7] = 0;
+
+	  CAN_TX(hcan1, AMS0_header, TxData);
+
 
 
     /* USER CODE END WHILE */

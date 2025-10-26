@@ -44,7 +44,7 @@ void MX_CAN1_Init(void)
 void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxData)
 {
 	uint32_t TxMailbox;
-	uint32_t freeMailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan1);
+	uint32_t freeMailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
 
 	if(freeMailboxes > 0)
 	{
@@ -53,7 +53,7 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 		    static uint8_t retries = 0;
 		    if (retries < 5) {  // Maximum retries
 		    	retries++;
-			    CAN_TX(hcan1, 0x200<<5, LED_state);
+			    CAN_TX(hcan, TxHeader, TxData);
 		    } else {
 		        retries = 0;  // Reset retry count after a failure
 		        // Optionally, handle the failure (e.g., by logging it)
@@ -68,7 +68,7 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 	}
 	else
 	{
-		CAN_TX(hcan1, 0x200<<5, LED_state);
+		CAN_TX(hcan, TxHeader, TxData);
 	}
 
 }
