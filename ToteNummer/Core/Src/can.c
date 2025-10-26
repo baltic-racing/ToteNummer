@@ -30,11 +30,6 @@ uint8_t TxData[8];
 CAN_HandleTypeDef hcan1;
 CAN_HandleTypeDef hcan2;
 
-/* CAN1 init function */
-void MX_CAN1_Init(void)
-{
-
-  /* USER CODE BEGIN CAN1_Init 0 */
 
 // TxHeader
 //CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8}; => steht in main.c
@@ -125,6 +120,11 @@ emfangen der Nachrichten von RX-FIFO0
 	}
 */
 
+/* CAN1 init function */
+void MX_CAN1_Init(void)
+{
+
+  /* USER CODE BEGIN CAN1_Init 0 */
 
 
   /* USER CODE END CAN1_Init 0 */
@@ -133,7 +133,7 @@ emfangen der Nachrichten von RX-FIFO0
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Prescaler = 5;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
@@ -160,8 +160,9 @@ emfangen der Nachrichten von RX-FIFO0
   	  FilterMaskIdHigh, Vergleich bestimmter Bits zwischen dem ID-Register und der eingehenden ID zu ermöglichen
   	  FilterMode, Maskenmodus (ausgewählte Bits vergleichen) oder Listenmodus (vollständige IDs vergleichen)
   	  Filter Scale, Verwendung eines 32-Bit-Registers oder zweier 16-Bit-Register
-  	  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-  */
+  	  */
+  canfilterconfig_DIC.FilterActivation = CAN_FILTER_ENABLE;
+
 
   canfilterconfig_DIC.FilterBank = 18;  // which filter bank to use from the assigned ones
   canfilterconfig_DIC.FilterFIFOAssignment = CAN_FILTER_FIFO0;

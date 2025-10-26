@@ -118,9 +118,12 @@ int main(void)
 
 
 
-  //HAL_CAN_Start(&hcan1);
-  //HAL_CAN_Start(&hcan2);
-
+  HAL_CAN_Start(&hcan1);
+  HAL_CAN_Start(&hcan2);
+  if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+    {
+        Error_Handler();
+    }
 
   /* USER CODE END 2 */
 
