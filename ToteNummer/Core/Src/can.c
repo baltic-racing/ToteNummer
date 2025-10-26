@@ -85,6 +85,13 @@ void CAN_RX(CAN_HandleTypeDef hcan)
 	}
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim -> Instance == TIM2)
+	{
+		CAN_interrupt();
+	}
+}
 /*
 Senden des CAN-Datenrahmens
 void CAN_TX(CAN_HandleTypeDef hcan, CAN_HandleTypeDef Txheader);
