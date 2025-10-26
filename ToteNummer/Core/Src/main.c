@@ -23,7 +23,6 @@
 #include "tim.h"
 #include "usb_device.h"
 #include "gpio.h"
-#include "stm32f2xx_hal_can.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -60,10 +59,7 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 
 /* USER CODE BEGIN PV */
 uint8_t LED_State = 0;
-// CAN bus
-CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-uint8_t TxData[8];
-
+extern uint8_t TxData[8];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -112,6 +108,7 @@ int main(void)
   MX_CAN1_Init();
   MX_CAN2_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LED_GN_GPIO_Port, LED_GN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_YW_GPIO_Port, LED_YW_Pin, GPIO_PIN_SET);
@@ -142,7 +139,7 @@ int main(void)
 	  TxData[6] = 0;
 	  TxData[7] = 0;
 
-	 // CAN_TX(hcan1, AMS0_header, TxData);
+	  // CAN_TX(hcan1, AMS0_header, TxData);
 
 
 

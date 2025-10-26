@@ -22,6 +22,9 @@
 
 /* USER CODE BEGIN 0 */
 #include "gpio.h"
+uint8_t counter = 0;
+CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
+uint8_t TxData[8];
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan1;
@@ -89,7 +92,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim -> Instance == TIM2)
 	{
-		CAN_interrupt();
+		counter ++;
+		if(counter == 100){
+			CAN_TX(hcan1, AMS0_header, TxData);
+			counter = 0;
+		}
 	}
 }
 /*
