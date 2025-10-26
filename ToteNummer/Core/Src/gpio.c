@@ -83,8 +83,9 @@ void ErrorLed_Task(){
 }
 // irgendwas mit dem Akku => gelbe LED?
 
-void LED_State(){
+/*void LED_State(){
 	HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
 }
+*/
 /* USER CODE END 2 */
 
