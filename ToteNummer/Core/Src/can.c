@@ -22,28 +22,19 @@
 
 /* USER CODE BEGIN 0 */
 #include "gpio.h"
+#include "main.h"
+#include "gpio.h"
+#include "tim.h"
 uint8_t counter = 0;
-CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
+CAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[8];
-/* USER CODE END 0 */
-
-CAN_HandleTypeDef hcan1;
-CAN_HandleTypeDef hcan2;
-
-
-// TxHeader
-//CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8}; => steht in main.c
-//CAN_TxHeaderTypeDef AMS1_header = {0x201, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-//CAN_TxHeaderTypeDef AMS2_header = {0x210, 0 , CAN_ID_STD, CAN_RTR_DATA, 8};
-
-//	CAN_TxHeaderTypeDef IVT_MSG_COMMAND = {0x411, 0,CAN_ID_STD, CAN_RTR_DATA,8};
+uint32_t TxMailbox;
 
 // transmit CAN Message
 void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxData)
 {
 	uint32_t TxMailbox;
 	uint32_t freeMailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
-
 	if(freeMailboxes > 0)
 	{
 		if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
@@ -60,36 +51,51 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 		}
 		else
 		{
-
 		}
-
 	}
 	else
 	{
 		CAN_TX(hcan, TxHeader, TxData);
 	}
-
 }
 	// receive CAN message
 void CAN_RX(CAN_HandleTypeDef hcan)
 {
 	CAN_RxHeaderTypeDef RxHeader;
 	uint8_t RxData[8];
-
 	if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
 	{
-
-
 	}
 }
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim -> Instance == TIM2)
 	{
 		counter ++;
-		if(counter == 100){
-			CAN_TX(hcan1, AMS0_header, TxData);
+
+		TxData[0] = 0;
+	  TxData[1] = 0;
+	  TxData[2] = 0;
+	  TxData[3] = 0;
+	  TxData[4] = 0;
+	  TxData[5] = 0;
+	  TxData[6] = 0;
+	  TxData[7] = 0;
+
+
+	  TxHeader.DLC = 8; // Data length
+	  			TxHeader.IDE = CAN_ID_STD; // Standard-ID (11-bit)
+	  			TxHeader.RTR = CAN_RTR_DATA;
+	  			TxHeader.StdId = 0x200; // ID
+		if(counter >= 1){
+			HAL_GPIO_TogglePin(LED_GN_GPIO_Port, LED_RD_Pin);
+
+			//CAN_TX(hcan1, TxHeader, TxData);
+			if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0) {
+			                if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
+
+			                }
+			            }
 			counter = 0;
 		}
 	}
@@ -100,12 +106,10 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_HandleTypeDef Txheader);
 Es ist der "Handle" (Zeiger bzw. Struktur), der alle relevanten Informationen enthält, damit die HAL-Bibliothek mit der CAN-Schnittstelle arbeiten kann
 if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK)
 {
-  ErrorLed_Task ();
+ ErrorLed_Task ();
 }
-
 	CAN_RxHeaderTypeDef   RxHeader;
 	uint8_t               RxData[8];
-
 emfangen der Nachrichten von RX-FIFO0
 	void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
@@ -120,6 +124,13 @@ emfangen der Nachrichten von RX-FIFO0
 	}
 */
 
+
+
+/* USER CODE END 0 */
+
+CAN_HandleTypeDef hcan1;
+CAN_HandleTypeDef hcan2;
+
 /* CAN1 init function */
 void MX_CAN1_Init(void)
 {
@@ -133,11 +144,11 @@ void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 5;
+  hcan1.Init.Prescaler = 3;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_13TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
@@ -160,20 +171,37 @@ void MX_CAN1_Init(void)
   	  FilterMaskIdHigh, Vergleich bestimmter Bits zwischen dem ID-Register und der eingehenden ID zu ermöglichen
   	  FilterMode, Maskenmodus (ausgewählte Bits vergleichen) oder Listenmodus (vollständige IDs vergleichen)
   	  Filter Scale, Verwendung eines 32-Bit-Registers oder zweier 16-Bit-Register
-  	  */
+
   canfilterconfig_DIC.FilterActivation = CAN_FILTER_ENABLE;
 
 
-  canfilterconfig_DIC.FilterBank = 18;  // which filter bank to use from the assigned ones
+  canfilterconfig_DIC.FilterBank = 1;  // which filter bank to use from the assigned ones
   canfilterconfig_DIC.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  canfilterconfig_DIC.FilterIdHigh = 0x500<<5;
-  canfilterconfig_DIC.FilterIdLow = 0;
-  canfilterconfig_DIC.FilterMode = CAN_FILTERMODE_IDLIST;	//Mask or List
+  canfilterconfig_DIC.FilterIdHigh = 0x0000;
+  canfilterconfig_DIC.FilterIdLow = 0x0000;
+  canfilterconfig_DIC.FilterMaskIdHigh = 0x0000;
+  canfilterconfig_DIC.FilterMaskIdLow = 0x0000;
+  canfilterconfig_DIC.FilterMode = CAN_FILTERMODE_IDMASK;	//Mask or List
   canfilterconfig_DIC.FilterScale = CAN_FILTERSCALE_32BIT;
   canfilterconfig_DIC.SlaveStartFilterBank = 20;  // how many filters to assign to the CAN1 (master can)
 
   HAL_CAN_ConfigFilter(&hcan1, &canfilterconfig_DIC);
+*/
 
+  CAN_FilterTypeDef canfilterconfig1;
+
+  canfilterconfig1.FilterActivation = CAN_FILTER_ENABLE;
+  canfilterconfig1.FilterBank = 0;  // which filter bank to use from the assigned ones
+  canfilterconfig1.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+  canfilterconfig1.FilterIdHigh = 0x500<<5;
+  canfilterconfig1.FilterIdLow = 0;
+  canfilterconfig1.FilterMaskIdHigh = 0x7FF<<5;
+  canfilterconfig1.FilterMaskIdLow = 0x0000;
+  canfilterconfig1.FilterMode = CAN_FILTERMODE_IDMASK;
+  canfilterconfig1.FilterScale = CAN_FILTERSCALE_32BIT;
+  canfilterconfig1.SlaveStartFilterBank = 14;  // how many filters to assign to the CAN1 (master can)
+
+  HAL_CAN_ConfigFilter(&hcan1, &canfilterconfig1);
 
   /* USER CODE END CAN1_Init 2 */
 

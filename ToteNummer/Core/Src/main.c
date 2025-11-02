@@ -20,6 +20,7 @@
 #include "main.h"
 #include "adc.h"
 #include "can.h"
+#include "spi.h"
 #include "tim.h"
 #include "usb_device.h"
 #include "gpio.h"
@@ -109,6 +110,7 @@ int main(void)
   MX_CAN2_Init();
   MX_USB_DEVICE_Init();
   MX_TIM2_Init();
+  MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LED_GN_GPIO_Port, LED_GN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_YW_GPIO_Port, LED_YW_Pin, GPIO_PIN_SET);
@@ -116,10 +118,9 @@ int main(void)
     //set hebt die Spannung an (+), led aus, in schematik anschauen
     //reset ist (-), led an
 
-
+  HAL_TIM_Base_Start_IT(&htim2);		//start Timer
 
   HAL_CAN_Start(&hcan1);
-  HAL_CAN_Start(&hcan2);
   if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
     {
         Error_Handler();
@@ -133,14 +134,7 @@ int main(void)
   {
 	  gpio();
 	  //ErrorLed_Task(); damit wird ein Fehler angezeigt
-	  TxData[0] = 0;
-	  TxData[1] = 0;
-	  TxData[2] = 0;
-	  TxData[3] = 0;
-	  TxData[4] = LED_State;
-	  TxData[5] = 0;
-	  TxData[6] = 0;
-	  TxData[7] = 0;
+
 
 	  // CAN_TX(hcan1, AMS0_header, TxData);
 
