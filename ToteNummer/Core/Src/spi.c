@@ -1,5 +1,5 @@
 /* USER CODE BEGIN Header */
-/**
+/*
   ******************************************************************************
   * @file    spi.c
   * @brief   This file provides code for the configuration
