@@ -1,2 +1,3 @@
-../Core/Src/LTC6811.c:28:6:LTC6811_initialize	16	static
-../Core/Src/LTC6811.c:35:6:set_adc	24	static
+../Core/Src/LTC6811.c:26:6:LTC6811_initialize	16	static
+../Core/Src/LTC6811.c:32:6:wakeup_idle	8	static
+../Core/Src/LTC6811.c:39:6:set_adc	24	static

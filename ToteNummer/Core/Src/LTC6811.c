@@ -25,36 +25,16 @@ uint8_t wakeup = 0x00;
 
 void LTC6811_initialize()
 {
-  set_adc(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_SC);
-  //set_selftest(MD_NORMAL, ST_1);
-}
-
-
-void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
-{
-  uint8_t md_bits;
-
-  md_bits = (MD & 0x02) >> 1;
-  ADCV[0] = md_bits | 0x02;
-  md_bits = (MD & 0x01) << 7;
-  ADCV[1] = md_bits | 0x60 | (DCP << 4) | CH;
-
-  md_bits = (MD & 0x02) >> 1;
-  ADAX[0] = md_bits | 0x04;
-  md_bits = (MD & 0x01) << 7;
-  ADAX[1] = md_bits | 0x60 | CHG;
-
-  CLRAUX[0] = 0x0E;
-  CLRAUX[1] = 0x12;
-}
-
-
-void LTC6811_initialize()
-{
   set_adc(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_ITMP);
   //set_selftest(MD_NORMAL, ST_1);
 }
 
+void wakeup_idle()
+{
+	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
+	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
+}
 
 void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
 {
