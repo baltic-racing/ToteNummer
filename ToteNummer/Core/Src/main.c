@@ -20,25 +20,14 @@
 #include "main.h"
 #include "adc.h"
 #include "can.h"
-#include "spi.h"
 #include "tim.h"
 #include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-extern uint8_t TxHeader;
-extern uint8_t hcan;
-
-void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData){
-	if(*can_exe_flag == 0){ // can_exe_flag = 0 => 0= Can wurde noch nicht gestartet, 1 => Can wurde bereits gestartet
-		HAL_CAN_Start(hcan);
-		HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-
-		(*can_exe_flag)++;
-	}
-}
+#include <stdbool.h>
+#include "TSAC_control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,8 +48,7 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t LED_State = 0;
-extern uint8_t TxData[8];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,7 +59,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+volatile uint8_t BMS_state = 0;
+volatile bool Error_Handler_state = false;
 /* USER CODE END 0 */
 
 /**
@@ -110,40 +99,48 @@ int main(void)
   MX_CAN2_Init();
   MX_USB_DEVICE_Init();
   MX_TIM2_Init();
-  MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(LED_GN_GPIO_Port, LED_GN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(LED_YW_GPIO_Port, LED_YW_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(LED_RD_GPIO_Port, LED_RD_Pin, GPIO_PIN_SET);
-    //set hebt die Spannung an (+), led aus, in schematik anschauen
-    //reset ist (-), led an
-
   HAL_TIM_Base_Start_IT(&htim2);		//start Timer
-
-  HAL_CAN_Start(&hcan1);
-  if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+  /*
+  .___________________________________________________.
+  | Error_state | Description             | Kill-Code |
+  |===================================================|
+  |		0		| No Error				  |	          |
+  |		1		| CAN transmission failed |	  101	  |
+  |		2		| CAN receive failed      |	  102	  |
+  |
+  |___________________________________________________|
+  */
+
+  HAL_GPIO_WritePin(GPIOC, LED_GN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, LED_YW_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, LED_RD_Pin, GPIO_PIN_SET);
+
+  while(BMS_state == 0)
   {
-	  gpio();
-	  //ErrorLed_Task(); damit wird ein Fehler angezeigt
-
-
-	  // CAN_TX(hcan1, AMS0_header, TxData);
-
-
-
+	  TSAC_control();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
+  if(BMS_state != 0){
+	  HAL_GPIO_WritePin(GPIOC, LED_RD_Pin, GPIO_PIN_RESET);		// Red-LED on and join the Error_state
+  }
+
+  if(BMS_state == 1){
+
+  }
+  if(BMS_state == 2){
+
+    }
+
+  if((BMS_state >> 2) == 1){
+  	  HAL_GPIO_WritePin(GPIOC, LED_RD_Pin, GPIO_PIN_SET);		// Red-LED off and left the Error_state
+    }
   /* USER CODE END 3 */
 }
 
@@ -202,6 +199,10 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+	  HAL_GPIO_WritePin(GPIOC, LED_RD_Pin, GPIO_PIN_RESET);		// Red-LED on and join the Error_state
+	  Error_Handler_state = true;
+
+	  TSAC_control();
   }
   /* USER CODE END Error_Handler_Debug */
 }
