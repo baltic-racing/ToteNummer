@@ -25,14 +25,13 @@ uint8_t LED_GN_state = 0;
 uint8_t LED_YW_state = 0;
 uint8_t LED_RD_state = 0;
 
-config_watch = 1;
 /*Functions*/
 
 void TSAC_control(){
 
 	CAN_transceive(&hcan1, &CAN1_exe, TxData);
 
-	Slave_control(config_watch);
+	Slave_control();
 }
 
 /* USER CODE END 0 */

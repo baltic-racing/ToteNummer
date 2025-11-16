@@ -6,8 +6,10 @@
  */
 
 #include "main.h"
+#include "radio_tx.h"
 #include "stdlib.h"
 #include "stdbool.h"
+#include "usart.h"
 #include "gpio.h"
 #include "Slave_control.h"
 #include <stdint.h>
@@ -30,13 +32,12 @@ uint8_t wakeup = 0x00;
 
 uint8_t pec = 0;
 
-uint8_t LTC_temp = 1;
 uint8_t data [1];
 
 /*@brief Initializes all command variables
  */
 
-void Slave_control(uint8_t config_watch){
+void Slave_control(){
 
 	if(config_watch != 0){
 		Config_setup(config_watch);
@@ -58,11 +59,11 @@ void wakeup_idle()
 /*________________________________________________________________________________________________________*/
 void Config_setup(uint8_t *config){
 	//standard configuration for meassure Cell temperature and Cell voltage
-	if(config == 1){
+	if(config_watch == 1){
 		set_setup(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_SC);
 	}
 	//configuration for read LTC temperature -> Internal Die Temperature (ITMP) via ADC1 [datasheet p. 17/29]
-	if(config == 2){
+	if(config_watch == 2){
 		set_setup(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_ITMP);
 	}
 
