@@ -41,10 +41,6 @@ uint32_t TxMailbox;
 uint8_t CAN1_exe = 0;
 uint8_t CAN2_exe = 0;
 
-extern uint8_t tim2_100ms = 0;
-extern uint8_t tim2_1ms = 0;
-
-
 /* Functions*/
 void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData){
 	if(*can_exe_flag == 0){
@@ -83,27 +79,6 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 	    BMS_state = 1; //Enter Error_state
 		//Error_Handler();
 	}
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-    if (htim->Instance == TIM2) {
-        // 200 ms-Zyklus
-        if (tim2_100ms >= 100) {
-            if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0) {
-                if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
-                    BMS_state = 1;
-                    Error_Handler();
-
-                }
-                HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);
-                LED_GN_state++;
-            }
-            tim2_100ms = 0;
-        }
-
-        tim2_100ms++;
-        tim2_1ms++;
-    }
 }
 
 

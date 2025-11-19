@@ -138,13 +138,13 @@ void LTC_readout(uint8_t reg, uint8_t *data)
 //char *data uint8_t *data , uint8_t len
 uint16_t pec15_calc(uint8_t len, uint8_t *data)
  {
- uint16_t remainder, address;
+	 uint16_t remainder, address;
 
- remainder = 16;//PEC seed
- for (int i = 0; i < len; i++)
- {
- address = ((remainder >> 7) ^ data[i]) & 0xff;//calculate PEC table address
- remainder = (remainder << 8 ) ^ pec15Table[address];
- }
- return (remainder*2);//The CRC15 has a 0 in the LSB so the final value must be multiplied by 2
+	 remainder = 16;//PEC seed
+	 for (int i = 0; i < len; i++)
+	 {
+		 address = ((remainder >> 7) ^ data[i]) & 0xff;//calculate PEC table address
+		 remainder = (remainder << 8 ) ^ pec15Table[address];
+	 }
+	 return (remainder*2);//The CRC15 has a 0 in the LSB so the final value must be multiplied by 2
  }

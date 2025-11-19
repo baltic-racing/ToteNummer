@@ -1,6 +1,7 @@
 "./Core/Src/LTC6811.o"
 "./Core/Src/Slave_control.o"
 "./Core/Src/TSAC_control.o"
+"./Core/Src/USB_control.o"
 "./Core/Src/adc.o"
 "./Core/Src/can.o"
 "./Core/Src/gpio.o"

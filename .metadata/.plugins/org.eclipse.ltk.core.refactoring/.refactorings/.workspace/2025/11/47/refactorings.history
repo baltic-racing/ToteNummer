@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete resource &apos;AMS_Firmware&apos;" deleteContents="false" description="Delete resource &apos;AMS_Firmware&apos;" element1="/AMS_Firmware" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1763291069213"/>
+</session>
