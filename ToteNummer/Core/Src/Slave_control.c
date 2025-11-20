@@ -5,7 +5,6 @@
  *      Author: Egquus
  */
 
-#include "main.h"
 #include "stdlib.h"
 #include "stdbool.h"
 #include "gpio.h"
@@ -22,6 +21,9 @@ uint8_t ADSTAT[2]; //!< Start Status Group ADC command
 
 uint8_t ADCV[2]; //!< Cell Voltage conversion command
 uint8_t ADAX[2]; //!< GPIO conversion command
+
+uint8_t ADAX_ITMP[2]; //!<
+
 uint8_t CVST[2]; //!< Cell Voltage selftest command
 uint8_t AXST[2]; //!< GPIO selftest command
 uint8_t CLRAUX[2]; //clear Auxiliary register
@@ -31,21 +33,23 @@ uint8_t wakeup = 0x00;
 uint8_t pec = 0;
 
 uint8_t LTC_temp = 1;
-uint8_t data [1];
+uint8_t data [8];
 
 /*@brief Initializes all command variables
  */
 
-void Slave_control(uint8_t config_watch){
+void Slave_control(uint8_t config_watch, uint8_t *data_shit){
 
 	if(config_watch != 0){
-		Config_setup(config_watch);
+		Config_setup(&config_watch);
 
 	}
 
-	LTC_cmd();						// measure order/command
+	LTC_cmd();																		// measure order/command
 
-	pec = LTC_readout(LTC_temp, data);	// Read measuring|später dann zum testen via USB auslesen
+	HAL_Delay(3);
+
+	pec = LTC_readout(LTC_temp, data_shit);										// Read measuring|später dann zum testen via USB auslesen
 
 }
 /*________________________________________________________________________________________________________*/
@@ -58,38 +62,43 @@ void wakeup_idle()
 /*________________________________________________________________________________________________________*/
 void Config_setup(uint8_t *config){
 	//standard configuration for meassure Cell temperature and Cell voltage
-	if(config == 1){
+	/*if(*config == 1){
 		set_setup(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_SC);
-	}
+	}*/
 	//configuration for read LTC temperature -> Internal Die Temperature (ITMP) via ADC1 [datasheet p. 17/29]
-	if(config == 2){
+	if(*config == 2){
 		set_setup(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_ITMP);
 	}
 
-	return (config = 0);
+	*config = 0;
 }
 
 void set_setup(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
 {
-  uint8_t md_bits;
+	uint8_t md_bits;
 
-  md_bits = (MD & 0x02) >> 1;
-  ADCV[0] = md_bits | 0x02;
-  md_bits = (MD & 0x01) << 7;
-  ADCV[1] = md_bits | 0x60 | (DCP << 4) | CH;
+	md_bits = (MD & 0x02) >> 1;
+	ADCV[0] = md_bits | 0x02;
+	md_bits = (MD & 0x01) << 7;
+	ADCV[1] = md_bits | 0x60 | (DCP << 4) | CH;
 
-  md_bits = (MD & 0x02) >> 1;
-  ADAX[0] = md_bits | 0x04;
-  md_bits = (MD & 0x01) << 7;
-  ADAX[1] = md_bits | 0x60 | CHG;
+	md_bits = (MD & 0x02) >> 1;
+	ADAX[0] = md_bits | 0x04;
+	md_bits = (MD & 0x01) << 7;
+	ADAX[1] = md_bits | 0x60 | CHG;
 
-  CLRAUX[0] = 0x0E;
-  CLRAUX[1] = 0x12;
+	CLRAUX[0] = 0x0E;
+	CLRAUX[1] = 0x12;
 
-  md_bits = (MD & 0x02) >> 1;
-  ADSTAT[0] = md_bits | 0x04;
-  md_bits = (MD & 0x01) << 7;
-  ADSTAT[1] = md_bits | 0x68 | CHST;
+	/*md_bits = (MD & 0x02) >> 1;
+	ADAUXA[0] = md_bits | 0x04;
+	md_bits = (MD & 0x01) << 7;
+	ADAUXA[1] = md_bits | 0x68 | CHST;*/
+
+	//md_bits = (MD & 0x02) >> 1;
+	ADAX_ITMP[0] = 0x04;//md_bits | 0x04;
+	//md_bits = (MD & 0x01) << 7;
+	ADAX_ITMP[1] = 0x6E;//md_bits | 0x68 | CHST;
 }
 /*________________________________________________________________________________________________________*/
 void LTC_cmd()
@@ -97,10 +106,10 @@ void LTC_cmd()
 	uint8_t cmd[4];
 	uint16_t temp_pec;
 	//1
-	cmd[0] = ADSTAT[0];
-	cmd[1] = ADSTAT[1];
+	cmd[0] = ADAX_ITMP[0];
+	cmd[1] = ADAX_ITMP[1];
 	//2
-	temp_pec = pec15_calc(2, ADSTAT);
+	temp_pec = pec15_calc(2, ADAX_ITMP);
 	cmd[2] = (uint8_t)(temp_pec >> 8);
 	cmd[3] = (uint8_t)(temp_pec);
 	//3
@@ -115,23 +124,26 @@ void LTC_cmd()
 
 }
 
-void LTC_readout(uint8_t reg, uint8_t *data)
+uint16_t LTC_readout(uint8_t reg, uint8_t *data)
 {
 	//if(reg == LTC_temp){
-		uint8_t RDICT[4];
+		uint8_t RDAUXA[4];
 		uint16_t temp_pec;
 
 		wakeup_idle();
 
 
-		RDICT[0] = 0x80;
-		temp_pec = pec15_calc(2, RDICT);
-		RDICT[2] = (uint8_t)(temp_pec >> 8);
-		RDICT[3] = (uint8_t)(temp_pec);
+		RDAUXA[0] = 0x00;			// RDAUXA = Read AUX A
+		RDAUXA[1] = 0x0C;
+		temp_pec = pec15_calc(2, RDAUXA);
+		RDAUXA[2] = (uint8_t)(temp_pec >> 8);
+		RDAUXA[3] = (uint8_t)(temp_pec);
 		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
-		spi_write_read(RDICT, 4, &data[0], 8);
+		spi_write_read(RDAUXA, 4, &data[0], 8);
 		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
 	//}
+
+		return temp_pec;
 }
 
 /*________________________________________________________________________________________________________*/

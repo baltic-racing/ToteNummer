@@ -12,7 +12,6 @@
 #include "stdlib.h"
 #include "stdint.h"
 
-
 #define NUM_STACK 12						 //total slaves
 #define NUM_CELLS_STACK 12					 //Cells per stack Attention LTC6811 CH all modus
 #define NUM_GPIO_STACK 6					 //GPIOs per slave
@@ -148,32 +147,12 @@ static const unsigned int pec15Table[256] = {0x0000, 0xc599, 0xceab, 0xb32, 0xd8
 #define CHST_VA 3
 #define CHST_VD 4
 
-void LTC6811_initialize(void);
-void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST);
-void set_selftest(uint8_t MD, uint8_t ST);
-void LTC6811_adcv(void);
-void LTC6811_adax(void);
-void LTC6811_cvst(void);
-void LTC6811_axst(void);
-void LTC6811_adstat(void);
-int8_t LTC6811_rdstatb(uint8_t total_ic, uint16_t OV_flag[] ,uint16_t UV_flag[], uint8_t r_statb[][6]);
-uint8_t LTC6811_rdcv(uint8_t reg, uint16_t cell_codes[][12]);
-void LTC6811_rdcv_reg(uint8_t reg, uint8_t *data);
-uint8_t LTC6811_rdaux(uint8_t reg, uint16_t aux_codes[][6]);
-void LTC6811_rdaux_reg(uint8_t reg, uint8_t *data);
-void LTC6811_clrcell(void);
-void LTC6811_clrstat(void);
-void LTC6811_clraux(void);
-void LTC6811_rdcfg(void);
-void LTC6811_wrcfg(uint8_t config[][6]);
-//int8_t LTC6811_rdcfg(uint8_t nIC, uint8_t r_config[][8]);
-void LTC6811_wrpwm(uint8_t nIC, uint8_t dutyCycle[][12]);
-void LTC6811_wrsctrl(uint8_t nIC, uint8_t sctl[][12]);
-int8_t LTC6811_rdsctrl(uint8_t nIC, uint8_t r_sctl[][6]);
+
 void wakeup_idle(void);
 void wakeup_sleep(void);
+
 uint16_t pec15_calc(uint8_t len, uint8_t *data);
-void nopDelay(uint32_t cnt);
+uint16_t LTC_readout(uint8_t reg, uint8_t *data);
 
 /**
  * @brief Write an array of bytes out of the SPI port (Used as abstraction for compatibility)
