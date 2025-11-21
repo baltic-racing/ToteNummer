@@ -35,7 +35,20 @@ void wakeup_idle()
 	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
 }
+/*!******************************************************************************************************************
+ \brief Maps  global ADC control variables to the appropriate control bytes for each of the different ADC commands
 
+@param[in] int MD The adc conversion mode
+@param[in] int DCP Controls if Discharge is permitted during cell conversions
+@param[in] int CH Determines which cells are measured during an ADC conversion command
+@param[in] int CHG Determines which GPIO channels are measured during Auxiliary conversion command
+Command Code: \n
+			|command	|  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+			|-----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+			|ADCV:	    |   0   |   1   | MD[1] | MD[0] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] |
+			|ADAX:	    |   1   |   0   | MD[1] | MD[0] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]|
+			|ADSTAT:    |   1   |   0   | MD[1] | MD[0] |   1   |   1   |   0   |   1   |CHST[2]|CHST[1]|CHST[0]|
+ ******************************************************************************************************************/
 void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
 {
   uint8_t md_bits;
@@ -52,4 +65,12 @@ void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
 
   CLRAUX[0] = 0x0E;
   CLRAUX[1] = 0x12;
+
+  /*
+    md_bits = (MD & 0x02) >> 1;
+    ADSTAT[0] = md_bits | 0x04;
+    md_bits = (MD & 0x01) << 7;
+    ADSTAT[1] = md_bits | 0x68 | CHST;
+    */
 }
+
