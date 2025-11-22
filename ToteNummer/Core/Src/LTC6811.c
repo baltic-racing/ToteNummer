@@ -19,6 +19,7 @@ uint8_t ADCV[2]; //!< Cell Voltage conversion command.
 uint8_t ADAX[2]; //!< GPIO conversion command.
 uint8_t CVST[2]; //!< Cell Voltage selftest command
 uint8_t AXST[2]; //!< GPIO selftest command
+uint8_t ADSTAT[2];
 uint8_t CLRAUX[2]; //clear Auxiliary register
 
 uint8_t wakeup = 0x00;
@@ -63,8 +64,14 @@ void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
   md_bits = (MD & 0x01) << 7;
   ADAX[1] = md_bits | 0x60 | CHG;
 
+  md_bits = (MD & 0x02) >> 1;
+  ADSTAT[0] = md_bits | 0x04;
+  md_bits = (MD & 0x01) << 7;
+  ADSTAT[1] = md_bits | 0x68 | CHST;
+
   CLRAUX[0] = 0x0E;
   CLRAUX[1] = 0x12;
+
 }
 
 void LTC6811_adax()
