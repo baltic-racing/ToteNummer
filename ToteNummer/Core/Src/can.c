@@ -22,9 +22,37 @@
 
 /* USER CODE BEGIN 0 */
 #include "gpio.h"
+#include "adc.h"
+#include "bms.h"
 #include "main.h"
 #include "gpio.h"
 #include "tim.h"
+
+extern uint8_t AMS0_databytes[8];
+extern uint8_t AMS1_databytes[8];
+extern uint8_t precharge;
+extern  uint16_t adc_accu_volt;
+extern uint16_t imdStatValue ;
+uint8_t DIC0_databytes[8];
+uint8_t dc_current[8];
+uint32_t current_data = 0;
+uint16_t current = 0;
+uint8_t ts_on = 0;
+uint8_t ts_start = 0;
+uint8_t charging = 0;
+volatile uint8_t ams_status = 0;
+uint8_t switch_on = 0;
+uint32_t capacity_data = 0;
+
+extern uint16_t ts_volt_can;
+
+extern volatile uint8_t send_can_50_message;
+extern volatile uint8_t send_can_10_message;
+
+extern uint8_t ts_ready ;
+extern uint8_t IMD_ERROR;
+extern uint8_t AMS_ERROR;
+
 uint8_t counter = 0;
 CAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[8];
@@ -67,6 +95,20 @@ void CAN_RX(CAN_HandleTypeDef hcan)
 	{
 	}
 }
+
+void can_put_data()
+{
+	AMS0_databytes[0] = ts_volt_can;
+	AMS0_databytes[1] = (ts_volt_can >> 8);
+	AMS0_databytes[2] = current;
+	AMS0_databytes[3] = (current >> 8);
+	AMS0_databytes[4] = imdStatValue;
+	AMS0_databytes[5] = (imdStatValue>>8);
+	AMS0_databytes[6] =  0  | (ts_ready << 3) | (precharge << 4) | (IMD_ERROR << 6) | (AMS_ERROR << 7);
+	AMS0_databytes[7] = ams_status;
+}
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim -> Instance == TIM2)

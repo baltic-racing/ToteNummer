@@ -1,0 +1,7 @@
+../Core/Src/bms.c:94:7:BMS_init	1
+../Core/Src/bms.c:99:14:BMS_WaitMs	2
+../Core/Src/bms.c:107:7:BMS	24
+../Core/Src/bms.c:249:7:convertVoltage	17
+../Core/Src/bms.c:312:11:calculateTemperature	3
+../Core/Src/bms.c:326:7:sortTemperature	5
+../Core/Src/bms.c:348:7:convertTemperature	17
