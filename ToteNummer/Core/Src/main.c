@@ -27,7 +27,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bms.h"
+#include "stdio.h"
 extern uint8_t TxHeader;
 extern uint8_t hcan;
 
@@ -59,7 +60,7 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t LED_State = 0;
+//uint8_t LED_State = 0;
 extern uint8_t TxData[8];
 /* USER CODE END PV */
 

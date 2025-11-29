@@ -7,6 +7,7 @@
 
 
 #include "bms.h"
+#include "main.h"
 #include "LTC6811.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -396,5 +397,23 @@ void convertTemperature(uint8_t selTemp)		// sort temp
 		prev_number_temp_min = cell_number_temp_min;
 	}
 
+}
+
+uint8_t getbalancingKP(uint16_t minVoltage)
+{
+	uint8_t KP ;
+	if(minVoltage >= 40000)
+	{
+		KP = 8;
+	}
+	else if (minVoltage >= 30000)
+	{
+		KP = 7;
+	}
+	else
+	{
+		KP = 8;
+	}
+	return KP;
 }
 
