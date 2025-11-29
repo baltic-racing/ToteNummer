@@ -1,6 +1,5 @@
 "./Core/Src/LTC6811.o"
 "./Core/Src/adc.o"
-"./Core/Src/bms.o"
 "./Core/Src/can.o"
 "./Core/Src/gpio.o"
 "./Core/Src/main.o"

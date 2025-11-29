@@ -47,9 +47,6 @@ void MX_CAN2_Init(void);
 void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t *TxData);
 ///void CAN_TX(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *TxHeader, uint8_t *TxData);
 void CAN_RX(CAN_HandleTypeDef hcan);
-void CAN_50(uint8_t AMS0_databytes[]);
-void CAN_10(uint8_t AMS1_databytes[]);
-void can_put_data(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

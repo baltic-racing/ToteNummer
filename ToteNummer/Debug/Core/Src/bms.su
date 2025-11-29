@@ -1,7 +1,0 @@
-../Core/Src/bms.c:94:7:BMS_init	8	static
-../Core/Src/bms.c:99:14:BMS_WaitMs	24	static
-../Core/Src/bms.c:107:7:BMS	24	static
-../Core/Src/bms.c:249:7:convertVoltage	16	static
-../Core/Src/bms.c:312:11:calculateTemperature	24	static
-../Core/Src/bms.c:326:7:sortTemperature	32	static
-../Core/Src/bms.c:348:7:convertTemperature	24	static
