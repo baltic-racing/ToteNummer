@@ -69,12 +69,12 @@ void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
   md_bits = (MD & 0x01) << 7;
   ADSTAT[1] = md_bits | 0x68 | CHST;
 
-  CLRAUX[0] = 0x0E;
+  CLRAUX[0] = 0x07;
   CLRAUX[1] = 0x12;
 
 }
 
-void LTC6811_adax()
+void LTC6811_clraux()
 {
 	uint8_t cmd[4];
 	uint16_t temp_pec;
@@ -96,7 +96,7 @@ void LTC6811_adax()
 	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 }
 
-void LTC6811_clraux()
+void LTC6811_adax()
 {
 	uint8_t cmd[4];
 	uint16_t temp_pec;
@@ -312,6 +312,29 @@ void LTC6811_clrstat()
   HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 }
 
+void LTC6811_adstat()
+{
+
+  uint8_t cmd[4];
+  uint16_t temp_pec;
+  //uint8_t wakeup = 0xff;
+
+  //1
+  cmd[0] = ADSTAT[0];
+  cmd[1] = ADSTAT[1];
+  //2
+  temp_pec = pec15_calc(2, ADSTAT);
+  cmd[2] = (uint8_t)(temp_pec >> 8);
+  cmd[3] = (uint8_t)(temp_pec);
+
+  //4
+	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
+	spi_write_array(4, cmd);
+	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
+
+	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
+	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
+}
 
 //char *data uint8_t *data , uint8_t len
 uint16_t pec15_calc(uint8_t len, uint8_t *data)

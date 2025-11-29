@@ -63,8 +63,36 @@ void Error_Handler(void);
 #define LED_YW_GPIO_Port GPIOC
 #define LED_RD_Pin GPIO_PIN_15
 #define LED_RD_GPIO_Port GPIOC
+#define WDI_Pin GPIO_PIN_4
+#define WDI_GPIO_Port GPIOA
+#define IMD_SAFE_Pin GPIO_PIN_5
+#define IMD_SAFE_GPIO_Port GPIOA
+#define SC_OPENING_Pin GPIO_PIN_6
+#define SC_OPENING_GPIO_Port GPIOA
+#define SC_OPEN_Pin GPIO_PIN_7
+#define SC_OPEN_GPIO_Port GPIOA
+#define SC_CLOSING_Pin GPIO_PIN_4
+#define SC_CLOSING_GPIO_Port GPIOC
+#define SC_STATE_Pin GPIO_PIN_5
+#define SC_STATE_GPIO_Port GPIOC
+#define TS_ACTIVATE_Pin GPIO_PIN_10
+#define TS_ACTIVATE_GPIO_Port GPIOB
+#define DANGER_V_Pin GPIO_PIN_11
+#define DANGER_V_GPIO_Port GPIOB
+#define AIR_P_ACT_Pin GPIO_PIN_14
+#define AIR_P_ACT_GPIO_Port GPIOB
+#define AIR_P_INT_Pin GPIO_PIN_15
+#define AIR_P_INT_GPIO_Port GPIOB
+#define AIR_N_ACT_Pin GPIO_PIN_6
+#define AIR_N_ACT_GPIO_Port GPIOC
+#define AIR_N_INT_Pin GPIO_PIN_7
+#define AIR_N_INT_GPIO_Port GPIOC
+#define AIR_P_SW_Pin GPIO_PIN_8
+#define AIR_P_SW_GPIO_Port GPIOC
 #define SPI3_CS_Pin GPIO_PIN_15
 #define SPI3_CS_GPIO_Port GPIOA
+#define PCHRG_ACT_Pin GPIO_PIN_2
+#define PCHRG_ACT_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

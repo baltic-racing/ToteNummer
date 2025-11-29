@@ -3,12 +3,13 @@
 ../Core/Src/LTC6811.c:27:6:LTC6811_initialize	1
 ../Core/Src/LTC6811.c:33:6:wakeup_idle	1
 ../Core/Src/LTC6811.c:53:6:set_adc	1
-../Core/Src/LTC6811.c:77:6:LTC6811_adax	1
-../Core/Src/LTC6811.c:99:6:LTC6811_clraux	1
+../Core/Src/LTC6811.c:77:6:LTC6811_clraux	1
+../Core/Src/LTC6811.c:99:6:LTC6811_adax	1
 ../Core/Src/LTC6811.c:122:6:LTC6811_wrcfg	4
 ../Core/Src/LTC6811.c:163:9:LTC6811_rdcv	5
 ../Core/Src/LTC6811.c:202:6:LTC6811_rdcv_reg	6
 ../Core/Src/LTC6811.c:229:9:LTC6811_rdaux	5
 ../Core/Src/LTC6811.c:268:6:LTC6811_rdaux_reg	4
 ../Core/Src/LTC6811.c:294:6:LTC6811_clrstat	1
-../Core/Src/LTC6811.c:317:10:pec15_calc	2
+../Core/Src/LTC6811.c:315:6:LTC6811_adstat	1
+../Core/Src/LTC6811.c:340:10:pec15_calc	2
