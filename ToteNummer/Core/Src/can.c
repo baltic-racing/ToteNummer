@@ -55,6 +55,22 @@ uint8_t counter = 0;
 CAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[8];
 uint32_t TxMailbox;
+uint32_t TxMailbox2;
+
+#define STOP 0
+#define RUN 1
+
+#define IVT_MSG_RESULT_T 4
+#define IVT_MSG_RESULT_W 5
+#define IVT_MSG_RESULT_As 6
+#define IVT_MSG_RESULT_Wh 7
+
+CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
+CAN_TxHeaderTypeDef AMS1_header = {0x201, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
+CAN_TxHeaderTypeDef AMS2_header = {0x210, 0 , CAN_ID_STD, CAN_RTR_DATA, 8};
+
+CAN_TxHeaderTypeDef IVT_MSG_COMMAND = {0x411, 0,CAN_ID_STD, CAN_RTR_DATA,8};
+
 
 // transmit CAN Message
 void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxData)
@@ -84,13 +100,133 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 		CAN_TX(hcan, TxHeader, TxData);
 	}
 }
+
 	// receive CAN message
+void CAN_TX_IVT(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxData)
+{
+	uint32_t TxMailbox;
+	uint32_t freeMailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
+	if(freeMailboxes > 0)
+	{
+		if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+		{
+		    static uint8_t retries = 0;
+		    if (retries < 5) {  // Maximum retries
+		    	retries++;
+			    CAN_TX_IVT(hcan, TxHeader, TxData);
+		    } else {
+		        retries = 0;  // Reset retry count after a failure
+		        // Optionally, handle the failure (e.g., by logging it)
+		        HAL_GPIO_WritePin(GPIOD, LED_RD_Pin, GPIO_PIN_SET);
+			}
+		}
+		else
+		{
+		}
+	}
+	else
+	{
+		CAN_TX_IVT(hcan, TxHeader, TxData);
+	}
+}
+
 void CAN_RX(CAN_HandleTypeDef hcan)
 {
 	CAN_RxHeaderTypeDef RxHeader;
 	uint8_t RxData[8];
 	if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
 	{
+	}
+	if( RxHeader.StdId == 0x500)		// Buttons on DIC
+		{
+			if((RxData[0]& 1) == 1)				// close SC
+			{
+				ts_on = 1;
+				switch_on = 1;
+			}
+
+			charging = (RxData[0]>>7);
+}
+
+
+void IVT_MODE(uint8_t mode)
+{
+	uint8_t data[8];
+
+	data[0] = 0x34;
+	data[1] = mode;
+	data[2] = 0x01;
+	data[3] = 0x00;
+	data[4] = 0x00;
+	data[5] = 0x00;
+	data[6] = 0x00;
+	data[7] = 0x00;
+
+	CAN_TX_IVT(hcan2,IVT_MSG_COMMAND,data);
+}
+
+void IVT_ACTIVATE(uint8_t channel)
+{
+	uint8_t data [8];
+
+	data[0] = 0x20 | channel;
+	data[1] = 0x02;
+	data[2] = 0x00;
+	data[3] = 0x14;
+	data[4] = 0x00;
+	data[5] = 0x00;
+	data[6] = 0x00;
+	data[7] = 0x00;
+
+	CAN_TX_IVT(hcan2,IVT_MSG_COMMAND,data);
+}
+
+void IVT_init()
+{
+	static uint32_t t = 0;
+	static uint8_t state = 0;
+
+	switch(state)
+	{
+		case 0:
+	        t = HAL_GetTick();   // aktuelle Zeit merken
+	        state = 1;
+	        break;
+
+	     case 1:
+	        if (HAL_GetTick() - t >= 1000) {
+	            IVT_MODE(STOP);
+	            t = HAL_GetTick();
+	            state = 2;
+	        }
+	        break;
+
+	     case 2:
+	    	 if (HAL_GetTick() - t >= 100) {
+	    		 IVT_ACTIVATE(IVT_MSG_RESULT_As);
+	    		 t = HAL_GetTick();
+	    		 state = 3;
+	         }
+	         break;
+
+	     case 3:
+	    	 if (HAL_GetTick() - t >= 100) {
+	    		 IVT_ACTIVATE(IVT_MSG_RESULT_W);
+	    		 t = HAL_GetTick();
+	    		 state = 4;
+	         }
+	         break;
+
+	     case 4:
+	    	 if (HAL_GetTick() - t >= 100) {
+	    		 IVT_MODE(RUN);
+	    		 state = 5;   // fertig
+	    	 }
+	         break;
+
+	     case 5:
+	            // done
+	         break;
 	}
 }
 
@@ -105,6 +241,71 @@ void can_put_data()
 	AMS0_databytes[6] =  0  | (ts_ready << 3) | (precharge << 4) | (IMD_ERROR << 6) | (AMS_ERROR << 7);
 	AMS0_databytes[7] = ams_status;
 }
+
+void CAN_RX_IVT(CAN_HandleTypeDef hcan)
+{
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t RxData[8];
+	if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+	{
+
+	}
+	current_data = 0;
+
+		if(RxHeader.StdId == 0x521)		// Current mA
+		{
+			current_data = RxData[5] | (RxData[4] << (1*8)) | (RxData[3] << (2*8)) | (RxData[2] << (3*8));
+
+			if(RxData[2] >> 7 == 0)
+			{
+				//current = (current_data << 1 >> 1)/100;
+				current = current_data/100;
+			}
+			else
+			{
+				current = ~current_data/100;
+			}
+			//current = current_data/100;
+
+			ivt_error_time = HAL_GetTick();
+
+			dc_current[4] = RxData[2];
+			dc_current[5] = RxData[3];
+			dc_current[6] = RxData[4];
+			dc_current[7] = RxData[5];
+
+		}
+		if(RxHeader.StdId == 0x527)		// Capacity As
+		{
+			capacity_data = RxData[5] | (RxData[4] << (1*8)); //| (RxData[3] << (2*8)) | (RxData[2] << (3*8));
+
+			AMS0_databytes[4] = RxData[4];
+			AMS0_databytes[5] = RxData[5];
+		}
+}
+
+void CAN_50(uint8_t precharge_data[])		// CAN Messages transmitted with 50 Hz
+{
+
+	CAN_TX(hcan1, AMS0_header, precharge_data);
+
+
+	ams_status++;
+
+	if(ams_status == 255)
+	{
+		ams_status = 0;
+	}
+}
+
+void CAN_10(uint8_t bms_data[])		// CAN Messages transmitted with 10 Hz
+{
+	CAN_TX(hcan1, AMS1_header, bms_data);
+	CAN_TX(hcan1, AMS2_header, dc_current);
+
+	//get_ts_ready();
+}
+
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -200,7 +401,7 @@ void MX_CAN1_Init(void)
   }
   /* USER CODE BEGIN CAN1_Init 2 */
 
-  CAN_FilterTypeDef canfilterconfig_DIC;
+  //CAN_FilterTypeDef canfilterconfig_DIC;
 
 
   /*  Filter über FilterAction aktivieren
@@ -273,7 +474,33 @@ void MX_CAN2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN2_Init 2 */
+  CAN_FilterTypeDef canfilterconfig_ivt;
 
+    canfilterconfig_ivt.FilterActivation = CAN_FILTER_ENABLE;
+    canfilterconfig_ivt.FilterBank = 14;  // which filter bank to use from the assigned ones
+    canfilterconfig_ivt.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+    canfilterconfig_ivt.FilterIdHigh = 0x521<<5;
+    canfilterconfig_ivt.FilterIdLow = 0;
+    canfilterconfig_ivt.FilterMaskIdHigh = 0x7FF<<5;
+    canfilterconfig_ivt.FilterMaskIdLow = 0x0000;
+    canfilterconfig_ivt.FilterMode = CAN_FILTERMODE_IDMASK;
+    canfilterconfig_ivt.FilterScale = CAN_FILTERSCALE_32BIT;
+    canfilterconfig_ivt.SlaveStartFilterBank = 14;  // how many filters to assign to the CAN1 (master can)
+
+    HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig_ivt);
+
+    CAN_FilterTypeDef canfilterconfig_ivt1;
+    canfilterconfig_ivt1.FilterActivation = CAN_FILTER_ENABLE;
+      canfilterconfig_ivt1.FilterBank = 15;  // which filter bank to use from the assigned ones
+      canfilterconfig_ivt1.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+      canfilterconfig_ivt1.FilterIdHigh = 0x527<<5;
+      canfilterconfig_ivt1.FilterIdLow = 0;
+      canfilterconfig_ivt1.FilterMaskIdHigh = 0x7FF<<5;
+      canfilterconfig_ivt1.FilterMaskIdLow = 0x0000;
+      canfilterconfig_ivt1.FilterMode = CAN_FILTERMODE_IDMASK;
+      canfilterconfig_ivt1.FilterScale = CAN_FILTERSCALE_32BIT;
+      canfilterconfig_ivt1.SlaveStartFilterBank = 14;
+    HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig_ivt1);
   /* USER CODE END CAN2_Init 2 */
 
 }

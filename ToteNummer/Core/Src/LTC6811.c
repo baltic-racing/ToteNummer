@@ -19,10 +19,13 @@ uint8_t ADCV[2]; //!< Cell Voltage conversion command.
 uint8_t ADAX[2]; //!< GPIO conversion command.
 uint8_t CVST[2]; //!< Cell Voltage selftest command
 uint8_t AXST[2]; //!< GPIO selftest command
-uint8_t ADSTAT[2];
+uint8_t ADSTAT[2]; //!< LTC temperature
 uint8_t CLRAUX[2]; //clear Auxiliary register
 
 uint8_t wakeup = 0x00;
+
+uint8_t pec = 0;
+uint8_t data [8];
 
 void LTC6811_initialize()
 {
@@ -64,14 +67,13 @@ void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
   md_bits = (MD & 0x01) << 7;
   ADAX[1] = md_bits | 0x60 | CHG;
 
+  CLRAUX[0] = 0x07;
+  CLRAUX[1] = 0x12;
+
   md_bits = (MD & 0x02) >> 1;
   ADSTAT[0] = md_bits | 0x04;
   md_bits = (MD & 0x01) << 7;
   ADSTAT[1] = md_bits | 0x68 | CHST;
-
-  CLRAUX[0] = 0x07;
-  CLRAUX[1] = 0x12;
-
 }
 
 void LTC6811_adcv()
@@ -141,6 +143,52 @@ void LTC6811_adax()
 	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 }
 
+void LTC6811_adstat()
+{
+
+  uint8_t cmd[4];
+  uint16_t temp_pec;
+  //uint8_t wakeup = 0xff;
+
+  //1
+  cmd[0] = ADSTAT[0];
+  cmd[1] = ADSTAT[1];
+  //2
+  temp_pec = pec15_calc(2, ADSTAT);
+  cmd[2] = (uint8_t)(temp_pec >> 8);
+  cmd[3] = (uint8_t)(temp_pec);
+
+  wakeup_idle();
+
+  //4
+  HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
+  spi_write_array(4, cmd);
+  HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
+
+  HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
+  HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
+}
+
+uint16_t LTC6811_rdADSTAT(uint8_t reg, uint8_t *data)
+{
+		uint8_t RDAUXA[4];
+		uint16_t temp_pec;
+
+		wakeup_idle();
+
+
+		RDAUXA[0] = 0x00;			// RDAUXA = Read AUX A
+		RDAUXA[1] = 0x0C;
+		temp_pec = pec15_calc(2, RDAUXA);
+		RDAUXA[2] = (uint8_t)(temp_pec >> 8);
+		RDAUXA[3] = (uint8_t)(temp_pec);
+		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
+		spi_write_read(RDAUXA, 4, &data[0], 8);
+		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
+	//}
+
+		return temp_pec;
+}
 
 void LTC6811_wrcfg(uint8_t config [][6])
 
@@ -293,10 +341,9 @@ void LTC6811_rdaux_reg(uint8_t reg, uint8_t *data)
 	uint8_t RDAUX[4];
 	uint16_t temp_pec;
 
-	switch(reg){
-		case 1: RDAUX[1] = 0xC; break;
-		case 2: RDAUX[1] = 0xE; break;
-	}
+	uint8_t lookup[3] = {0, 0x0C, 0x0E};
+	RDAUX[1] = lookup[reg];
+
 
 	wakeup_idle();
 
@@ -311,7 +358,10 @@ void LTC6811_rdaux_reg(uint8_t reg, uint8_t *data)
         spi_write_read(RDAUX, 4, &data[current_ic * 8], 8);
         HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
     }
+
+    return temp_pec;
 }
+
 
 
 void LTC6811_clrstat()
@@ -331,32 +381,6 @@ void LTC6811_clrstat()
   HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
   spi_write_array(4, cmd);
   HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
-  HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
-  HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
-}
-
-void LTC6811_adstat()
-{
-
-  uint8_t cmd[4];
-  uint16_t temp_pec;
-  //uint8_t wakeup = 0xff;
-
-  //1
-  cmd[0] = ADSTAT[0];
-  cmd[1] = ADSTAT[1];
-  //2
-  temp_pec = pec15_calc(2, ADSTAT);
-  cmd[2] = (uint8_t)(temp_pec >> 8);
-  cmd[3] = (uint8_t)(temp_pec);
-
-  wakeup_idle();
-
-  //4
-  HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
-  spi_write_array(4, cmd);
-  HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
-
   HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
   HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 }

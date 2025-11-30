@@ -22,7 +22,6 @@
 #include "can.h"
 #include "spi.h"
 #include "tim.h"
-#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -120,13 +119,24 @@ int main(void)
     //reset ist (-), led an
 
   HAL_TIM_Base_Start_IT(&htim2);		//start Timer
-
   HAL_CAN_Start(&hcan1);
+  HAL_CAN_Start(&hcan2);
+  BMS_init();
+
   if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
     {
         Error_Handler();
     }
 
+  if (HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+      {
+          Error_Handler();
+      }
+
+  	 HAL_TIM_IC_Start_IT(&htim9, TIM_CHANNEL_2);   // main channel
+     HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
+
+  IVT_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -134,6 +144,10 @@ int main(void)
   while (1)
   {
 	  gpio();
+	  BMS();
+  }
+
+
 	  //ErrorLed_Task(); damit wird ein Fehler angezeigt
 
 
@@ -144,7 +158,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+
   /* USER CODE END 3 */
 }
 

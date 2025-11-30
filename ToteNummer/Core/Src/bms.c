@@ -90,7 +90,36 @@ extern uint8_t dc_current[8];
  * HLCK 96 MHz
  * APB1 48 MHz
  */
+void HAL_TIM_PeriodElapsedCallback_LTC(TIM_HandleTypeDef *htim)
+{
+	CAN_interrupt();
+}
 
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    CAN_RX(hcan1);
+    CAN_RX_IVT(hcan2);
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)  // If the interrupt is triggered by channel 1
+	{
+		// Read the IC value
+		ICValue = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+		if(ICValue != 0){
+			Duty = 100 - (HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1) * 100.0)/ICValue; // calculate the Duty Cycle
+		}
+	}
+	if(Duty < 10) {
+		Duty = 10;
+	}
+	else if(Duty > 90){
+		Duty = 90;
+	}
+
+	imdStatValue = (90.0*1200)/(Duty-5.0) - 1200;		//R_F = (90% * 1200kOhm)/(duty[%] - 5%) - 1200kOhm
+}
 
 void BMS_init()
 {
