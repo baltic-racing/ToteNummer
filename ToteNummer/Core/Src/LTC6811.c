@@ -21,6 +21,7 @@ uint8_t CVST[2]; //!< Cell Voltage selftest command
 uint8_t AXST[2]; //!< GPIO selftest command
 uint8_t ADSTAT[2]; //!< LTC temperature
 uint8_t CLRAUX[2]; //clear Auxiliary register
+uint8_t RDAUXA[4];
 
 uint8_t wakeup = 0x00;
 
@@ -30,6 +31,7 @@ uint8_t data [8];
 void LTC6811_initialize()
 {
   set_adc(MD_NORMAL, DCP_DISABLED, CELL_CH_ALL, AUX_CH_ALL, CHST_ITMP);
+  LTC6811_adstat();
   //set_selftest(MD_NORMAL, ST_1);
 }
 
@@ -169,7 +171,7 @@ void LTC6811_adstat()
   HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 }
 
-uint16_t LTC6811_rdADSTAT(uint8_t reg, uint8_t *data)
+uint8_t LTC6811_rdADSTAT(uint8_t reg, uint8_t *data)
 {
 		uint8_t RDAUXA[4];
 		uint16_t temp_pec;
@@ -186,7 +188,6 @@ uint16_t LTC6811_rdADSTAT(uint8_t reg, uint8_t *data)
 		spi_write_read(RDAUXA, 4, &data[0], 8);
 		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
 	//}
-
 		return temp_pec;
 }
 

@@ -11,7 +11,7 @@
 #include "bms.h"
 #include "LTC6811.h"
 
-extern volatile uint8_t BMS_state;
+
 
 /*
 .__________________________________________.
@@ -43,7 +43,7 @@ void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count)
     uint8_t payload_len = value_count * 2;   // ID + VAL je Wert = 2 Bytes
 
     if (payload_len > 60) {
-        BMS_state = 3;
+        //BMS_state = 3;
         return;
     }
 
