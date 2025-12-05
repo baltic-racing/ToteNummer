@@ -17,7 +17,6 @@
 #include "string.h"
 #include "define.h"
 #include "gpio.h"
-#include "usb_control.h"
 
 uint8_t precharge = 0;
 
@@ -82,9 +81,6 @@ uint8_t cell_number_volt_max = 0;
 
 extern uint8_t dc_current[8];
 
-uint8_t data_shit[2] = {0x03, 0x07};
-char broadcaster [10]= '';
-
 /* 1 ms interrupt
  * HLCK 96 MHz
  * APB1 48 MHz
@@ -128,9 +124,6 @@ void BMS()		// Battery Management System function for main loop.
 {
 	uint8_t pec = 0;
 	static uint8_t selTemp = 0;
-
-	strcpy(broadcaster, "slave");
-	USB_control(broadcaster, &data_shit, (sizeof(data_shit) / 2));
 }
 static void BMS_WaitMs(uint32_t ms)
 {
@@ -139,9 +132,6 @@ static void BMS_WaitMs(uint32_t ms)
     {
     }
 }
-
-
-
 
 
 uint16_t calculateTemperature(uint16_t voltageCode, uint16_t referenceCode)		//convert temp
