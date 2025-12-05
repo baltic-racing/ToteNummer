@@ -23,6 +23,19 @@
 
 /* USER CODE BEGIN 0 */
 #include "can.h"
+#include "define.h"
+
+extern uint8_t precharge;
+extern uint8_t ts_on;
+extern uint8_t ts_start;
+extern uint8_t charging;
+extern uint8_t switch_on;
+
+uint8_t error = 0;
+uint8_t ts_ready = 0;
+uint8_t sc_state = 0;
+uint32_t precharge_time = 0;
+uint8_t precharge_check = 0;
 /* USER CODE END 0 */
 
 /*----------------------------------------------------------------------------*/
@@ -80,7 +93,7 @@ void gpio(){
 
 	//LED grün (blinkend)
 		uint64_t now = HAL_GetTick();	// Zeitpunkt jetzt
-		if(now - lastGN >= 2000){
+		if(now - lastGN >= 500){
 			HAL_GPIO_TogglePin(LED_GN_GPIO_Port, LED_GN_Pin);
 			lastGN = now;				// TogglePin wieder aufrufen
 		}
@@ -96,5 +109,6 @@ void ErrorLed_Task(){
 void LED_State(){
 	HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
 }
+
 
 /* USER CODE END 2 */

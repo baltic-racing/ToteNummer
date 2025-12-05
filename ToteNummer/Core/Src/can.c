@@ -146,6 +146,7 @@ void CAN_RX(CAN_HandleTypeDef hcan)
 			}
 
 			charging = (RxData[0]>>7);
+		}
 }
 
 

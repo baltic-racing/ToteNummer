@@ -1,4 +1,4 @@
-../Core/Src/gpio.c:42:6:MX_GPIO_Init	48	static
-../Core/Src/gpio.c:79:6:gpio	32	static
-../Core/Src/gpio.c:90:6:ErrorLed_Task	8	static
-../Core/Src/gpio.c:96:6:LED_State	8	static
+../Core/Src/gpio.c:55:6:MX_GPIO_Init	48	static
+../Core/Src/gpio.c:92:6:gpio	32	static
+../Core/Src/gpio.c:103:6:ErrorLed_Task	8	static
+../Core/Src/gpio.c:109:6:LED_State	8	static
