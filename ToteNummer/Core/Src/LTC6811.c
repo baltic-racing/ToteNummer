@@ -21,7 +21,7 @@ uint8_t CVST[2]; //!< Cell Voltage selftest command
 uint8_t AXST[2]; //!< GPIO selftest command
 uint8_t ADSTAT[2]; //!< LTC temperature
 uint8_t CLRAUX[2]; //clear Auxiliary register
-uint8_t RDAUXA[4];
+uint8_t RDAUXA[3];
 
 uint8_t wakeup = 0x00;
 

@@ -80,8 +80,10 @@ uint8_t cell_number_temp_max = 0;
 uint8_t cell_number_volt_min = 0;
 uint8_t cell_number_volt_max = 0;
 
+uint8_t tempLTC = 0;
 
-extern uint8_t RDAUXA[4];
+
+extern uint8_t RDAUXA[3];
 
 extern uint8_t dc_current[8];
 
@@ -133,9 +135,21 @@ void BMS()		// Battery Management System function for main loop.
 	uint8_t pec = 0;
 	static uint8_t selTemp = 0;
 
-	data_shit[1] = RDAUXA[4];
+	data_shit[1] = RDAUXA[3];
 	strcpy(broadcaster, "slave");
 	USB_control(broadcaster, data_shit, sizeof(data_shit));
+
+	LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
+	HAL_Delay(3);
+
+	LTC6811_clraux();		// Write config
+	HAL_Delay(3);
+
+	LTC6811_adstat();										// measure voltages
+	HAL_Delay(3);
+
+	pec = LTC6811_rdADSTAT(0, tempLTC);	//read voltages
+	HAL_Delay(3);
 
 }
 static void BMS_WaitMs(uint32_t ms)
