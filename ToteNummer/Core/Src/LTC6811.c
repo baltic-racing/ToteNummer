@@ -21,7 +21,7 @@ uint8_t CVST[2]; //!< Cell Voltage selftest command
 uint8_t AXST[2]; //!< GPIO selftest command
 uint8_t ADSTAT[2]; //!< LTC temperature
 uint8_t CLRAUX[2]; //clear Auxiliary register
-uint8_t RDAUXA[3];
+uint8_t RDAUXA[8];
 
 uint8_t wakeup = 0x00;
 
@@ -173,22 +173,25 @@ void LTC6811_adstat()
 
 uint8_t LTC6811_rdADSTAT(uint8_t reg, uint8_t *data)
 {
-		uint8_t RDAUXA[4];
+		uint8_t cmd[4];
 		uint16_t temp_pec;
 
 		wakeup_idle();
 
+		cmd[0] = 0x00;			// RDAUXA = Read AUX A
+		cmd[1] = 0x0C;
 
-		RDAUXA[0] = 0x00;			// RDAUXA = Read AUX A
-		RDAUXA[1] = 0x0C;
-		temp_pec = pec15_calc(2, RDAUXA);
-		RDAUXA[2] = (uint8_t)(temp_pec >> 8);
-		RDAUXA[3] = (uint8_t)(temp_pec);
+		temp_pec = pec15_calc(2, cmd);
+		cmd[2] = (uint8_t)(temp_pec >> 8);
+		cmd[3] = (uint8_t)(temp_pec);
+
+
 		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
-		spi_write_read(RDAUXA, 4, &data[0], 8);
+		spi_write_read(cmd, 4, &data[0], 8);
 		HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
-	//}
-		return temp_pec;
+
+		return 0;
+
 }
 
 void LTC6811_wrcfg(uint8_t config [][6])
@@ -363,6 +366,46 @@ void LTC6811_rdaux_reg(uint8_t reg, uint8_t *data)
     return temp_pec;
 }
 
+void LTC681x_rdstat_reg(uint8_t reg, uint8_t total_ic, uint8_t data[])
+{
+    const uint8_t REG_LEN = 8;   // STATA/B/C/D = 6 data bytes + 2 PEC
+    uint8_t cmd[4];
+    uint16_t cmd_pec;
+
+    // ----- Command select -----
+    // reg = 0 → STATA
+    // reg = 1 → STATB
+    // reg = 2 → STATC
+    // reg = 3 → STATD
+    switch (reg)
+    {
+        case 0: cmd[1] = 0x10; break;   // RDSTATA
+        case 1: cmd[1] = 0x12; break;   // RDSTATB
+        case 2: cmd[1] = 0x14; break;   // RDSTATC
+        case 3: cmd[1] = 0x16; break;   // RDSTATD
+        default: cmd[1] = 0x10; break;  // default STATA
+    }
+    cmd[0] = 0x00;   // Broadcast address
+
+    // PEC berechnen
+    cmd_pec  = pec15_calc(2, cmd);
+    cmd[2]   = (cmd_pec >> 8) & 0xFF;
+    cmd[3]   = (cmd_pec >> 0) & 0xFF;
+
+    wakeup_idle();
+
+    // ----- SPI Lesen -----
+    // Für jede IC-Stack-Position einzeln lesen
+    for (uint8_t ic = 0; ic < total_ic; ic++)
+    {
+        HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
+
+        // Write command (4 bytes), dann read 8 Bytes
+        spi_write_read(cmd, 4, &data[ic * REG_LEN], REG_LEN);
+
+        HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
+    }
+}
 
 
 void LTC6811_clrstat()

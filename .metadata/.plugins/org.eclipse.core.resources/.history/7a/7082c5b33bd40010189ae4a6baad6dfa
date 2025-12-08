@@ -1,0 +1,15 @@
+/*
+ * usb_control.h
+ *
+ *  Created on: Dec 5, 2025
+ *      Author: Lilly
+ */
+
+#ifndef USB_CONTROL_H_
+#define USB_CONTROL_H_
+
+void USB_control(char *broadcaster, uint8_t *usb_data, uint8_t data_size);
+void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count);
+
+#endif /* SRC_USB_CONTROL_H_ */
+

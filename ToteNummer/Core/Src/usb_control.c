@@ -10,6 +10,7 @@
 #include "gpio.h"
 #include "bms.h"
 #include "LTC6811.h"
+//#include "usb_ontrol.h"
 
 
 
@@ -35,7 +36,7 @@ void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size)
         type = 0x02;   // Debug
     }
 
-    USB_transmit(type, usb_data, data_size);
+    USB_transmit(type, usb_data, data_size / 2);
 }
 
 void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count)
