@@ -80,11 +80,11 @@ uint8_t cell_number_temp_max = 0;
 uint8_t cell_number_volt_min = 0;
 uint8_t cell_number_volt_max = 0;
 
-extern uint8_t RDAUXA[8];
+extern uint8_t RDSTAT[8];
 
 extern uint8_t dc_current[8];
 
-uint8_t data_shit[2] = {0x03, 0x07};
+//uint8_t data_shit[2] = {0x03, 0x07};
 char broadcaster [10]= "";
 
 /* 1 ms interrupt
@@ -129,28 +129,66 @@ void BMS_init()
 
 void BMS()		// Battery Management System function for main loop.
 {
-	uint8_t pec = 0;
-	static uint8_t selTemp = 0;
+	uint8_t stA[8];
+	int16_t temp_c10;   // 0.1 °C aus LTC
+	int8_t  temp_c;     // °C für USB
 
-	LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
-	HAL_Delay(3);
+	//uint8_t pec = 0;
+	//static uint8_t selTemp = 0;
 
-	LTC6811_clraux();		// Write config
+	//LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
+	//HAL_Delay(3);
+
+	LTC6811_clrstat();		// Write config
 	HAL_Delay(3);
 
 	LTC6811_adstat();										// measure voltages
-	HAL_Delay(3);
+	HAL_Delay(15);
 
 	///for (int i = 0; i < 8; i++) RDAUXA[i] = 0x00;
 
-	pec = LTC6811_rdADSTAT(0, RDAUXA);	//read voltages
-	HAL_Delay(3);
 
-	data_shit[0] = 0x03;
-	data_shit[1] = RDAUXA[2];
 
-	strcpy(broadcaster, "slave");
-	USB_control(broadcaster, data_shit, 2);
+	int8_t pec_ok = LTC6811_rdstat(0, stA);
+
+	printf("pec_ok=%d\r\n", pec_ok);
+	printf("STATA: %02X %02X %02X %02X %02X %02X | %02X %02X\r\n",
+	       stA[0], stA[1], stA[2], stA[3], stA[4], stA[5], stA[6], stA[7]);
+
+
+	if (pec_ok == 0 && (stA[2] | stA[3]) != 0)
+	{
+	    uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+	    temp_c10 = (int16_t)(((int32_t)itmp * 2 + 7) / 15 - 2730); // 0.1°C
+	}
+	else
+	{
+	    temp_c10 = 0x7FFF;   // Fehlerwert
+	    PEC_ERROR = 1;
+	}
+
+	uint8_t payload[3];
+
+	uint16_t temp_u16 = (uint16_t)temp_c10;   // 16-Bit Wert (0.1°C)
+	payload[0] = 0x03;                        // ID: LTC_Internal_Temp
+	payload[1] = (uint8_t)(temp_u16 >> 8);   // High Byte
+	payload[2] = (uint8_t)(temp_u16 & 0xFF); // Low Byte
+
+
+	USB_control("slave", payload, sizeof(payload)); // = 3
+	//USB_control("slave", payload, 3);
+
+
+	/*uint8_t payload[2];
+	payload[0] = 0x03;              // ID: LTC_Internal_Temp
+	payload[1] = (uint8_t)temp_c;   // Temperatur in °C
+
+
+	USB_control("slave", payload, 3);
+	*/
+	//strcpy(broadcaster, "slave");
+	//USB_control(broadcaster, payload, 2);
+
 }
 static void BMS_WaitMs(uint32_t ms)
 {
