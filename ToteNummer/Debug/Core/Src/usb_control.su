@@ -1,3 +1,2 @@
-../Core/Src/usb_control.c:32:9:CDC_SendBlocking	32	static
-../Core/Src/usb_control.c:67:6:USB_control	32	static
-../Core/Src/usb_control.c:82:6:USB_transmit	24	static
+../Core/Src/usb_control.c:26:6:USB_control	32	static
+../Core/Src/usb_control.c:44:6:USB_transmit	88	static

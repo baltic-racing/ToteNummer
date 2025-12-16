@@ -80,24 +80,20 @@ uint8_t cell_number_temp_max = 0;
 uint8_t cell_number_volt_min = 0;
 uint8_t cell_number_volt_max = 0;
 
-extern uint8_t RDSTAT[4];
+extern uint8_t RDSTAT[8];
+
 extern uint8_t dc_current[8];
 
-//extern uint8_t RDAUXA[8];
 //uint8_t data_shit[2] = {0x03, 0x07};
-
 char broadcaster [10]= "";
+
 /* 1 ms interrupt
  * HLCK 96 MHz
  * APB1 48 MHz
  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_PeriodElapsedCallback_LTC(TIM_HandleTypeDef *htim)
 {
-	if (htim->Instance == TIM2)
-	    {
-	        CAN_interrupt();   // eure Logik
-	        //CAN_TIM2_Tick();   // eure can.c Tick-Funktion
-	    }
+	CAN_interrupt();
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
@@ -133,42 +129,67 @@ void BMS_init()
 
 void BMS()		// Battery Management System function for main loop.
 {
-	static uint32_t last_usb = 0;
-	if (HAL_GetTick() - last_usb > 100) return;   // nur alle 100ms (10Hz)
-	last_usb = HAL_GetTick();
-	uint8_t stA[8] = {0};
-	int16_t temp_c10 = 0x7FFF;			// Default: Fehlerwert (wichtig!)
+	uint8_t stA[8];
+	int16_t temp_c10;   // 0.1 °C aus LTC
+	int8_t  temp_c;     // °C für USB
 
-	LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
+	//uint8_t pec = 0;
+	//static uint8_t selTemp = 0;
+
+	//LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
+	//HAL_Delay(3);
+
+	LTC6811_clrstat();		// Write config
 	HAL_Delay(3);
-	LTC6811_clrstat();
-	HAL_Delay(2);
-	LTC6811_adstat();
-	HAL_Delay(20);
-	// Status Register A lesen (ITMP liegt in Byte 2 und 3)
-	if (LTC6811_rdstat(0, stA) == 0)
+
+	LTC6811_adstat();										// measure voltages
+	HAL_Delay(15);
+
+	///for (int i = 0; i < 8; i++) RDAUXA[i] = 0x00;
+
+
+
+	int8_t pec_ok = LTC6811_rdstat(0, stA);
+
+	printf("pec_ok=%d\r\n", pec_ok);
+	printf("STATA: %02X %02X %02X %02X %02X %02X | %02X %02X\r\n",
+	       stA[0], stA[1], stA[2], stA[3], stA[4], stA[5], stA[6], stA[7]);
+
+
+	if (pec_ok == 0 && (stA[2] | stA[3]) != 0)
 	{
-		uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
-		temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730); // 0.1°C
-		PEC_ERROR = 0;
+	    uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+	    temp_c10 = (int16_t)(((int32_t)itmp * 2 + 7) / 15 - 2730); // 0.1°C
 	}
 	else
 	{
-		temp_c10 = 0x7FFF;
-		PEC_ERROR = 1;
+	    temp_c10 = 0x7FFF;   // Fehlerwert
+	    PEC_ERROR = 1;
 	}
 
 	uint8_t payload[3];
+
 	uint16_t temp_u16 = (uint16_t)temp_c10;   // 16-Bit Wert (0.1°C)
 	payload[0] = 0x03;                        // ID: LTC_Internal_Temp
 	payload[1] = (uint8_t)(temp_u16 >> 8);   // High Byte
 	payload[2] = (uint8_t)(temp_u16 & 0xFF); // Low Byte
+
+
 	USB_control("slave", payload, sizeof(payload)); // = 3
+	//USB_control("slave", payload, 3);
 
 
+	/*uint8_t payload[2];
+	payload[0] = 0x03;              // ID: LTC_Internal_Temp
+	payload[1] = (uint8_t)temp_c;   // Temperatur in °C
+
+
+	USB_control("slave", payload, 3);
+	*/
+	//strcpy(broadcaster, "slave");
+	//USB_control(broadcaster, payload, 2);
 
 }
-
 static void BMS_WaitMs(uint32_t ms)
 {
     uint32_t start = HAL_GetTick();
@@ -176,6 +197,10 @@ static void BMS_WaitMs(uint32_t ms)
     {
     }
 }
+
+
+
+
 
 uint16_t calculateTemperature(uint16_t voltageCode, uint16_t referenceCode)		//convert temp
 {
@@ -194,7 +219,6 @@ void CAN_interrupt()
 {
 	if (HAL_GetTick()>= last20 + 20)
 	{
-		can_put_data();           // <-- DAS FEHLT
 		CAN_50(AMS0_databytes);
 		last20 = HAL_GetTick();
 	}
@@ -203,7 +227,7 @@ void CAN_interrupt()
 		CAN_10(AMS1_databytes);
 
 		HAL_GPIO_TogglePin(GPIOA, WDI_Pin);		// toggle watchdog
-		//HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);	// toggle LED
+		HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);	// toggle LED
 		last100 = HAL_GetTick();
 		//send_usb();
 	}
@@ -281,7 +305,7 @@ void convertTemperature(uint8_t selTemp)		// sort temp
 		/*
 		if(!(temp_min < MIN_Temp || temp_max > MAX_Temp))
 					temp_error_time = HAL_GetTick();
-		 */
+*/
 		if(!((temp_min < MIN_Temp && prev_number_temp_min == cell_number_temp_min) || (temp_max > MAX_Temp && prev_number_temp_max == cell_number_temp_max)))
 					temp_error_time = HAL_GetTick();
 
