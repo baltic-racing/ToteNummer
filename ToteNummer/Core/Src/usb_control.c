@@ -10,9 +10,16 @@
 #include "gpio.h"
 #include "bms.h"
 #include "LTC6811.h"
-//#include "usb_ontrol.h"
+#include "usbd_def.h"
+#include "usbd_cdc_if.h"
+#include <string.h>
+#include "usb_control.h"
+extern USBD_HandleTypeDef hUsbDeviceFS;
 
-
+volatile uint32_t usb_not_configured = 0;
+volatile uint32_t usb_busy = 0;
+volatile uint32_t usb_fail = 0;
+volatile uint32_t usb_ok = 0;
 
 /*
 .__________________________________________.
@@ -22,7 +29,8 @@
 |__________________________________________|
 */
 
-void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size)
+//void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size)
+void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t byte_len)
 {
     uint8_t type = 0x00;
 
@@ -36,12 +44,38 @@ void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size)
         type = 0x02;   // Debug
     }
 
-    USB_transmit(type, usb_data, data_size / 2);
+    if ((byte_len % 3) != 0) return;          // MUSS 3er Pakete sein (ID,H,L)
+    USB_transmit(type, usb_data, byte_len / 3);
+    //USB_transmit(type, usb_data, data_size / 3);
+
 }
+
+
 
 void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count)
 {
-    uint8_t payload_len = value_count * 2;   // ID + VAL je Wert = 2 Bytes
+	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
+	{
+		  usb_not_configured++;
+		  return;
+	}
+
+	static uint32_t last = 0;
+	if (HAL_GetTick() - last < 100) return;   // nur alle 100ms senden = 10 Hz
+	last = HAL_GetTick();
+
+	static uint8_t packet[64];
+	uint8_t payload_len = value_count * 3;   // ID + High + Low
+
+	if (payload_len > 60) return;
+
+    uint8_t index = 0;
+
+    packet[index++] = 0xAA;        // Start
+    packet[index++] = type;        // Type
+    packet[index++] = payload_len; // Payload length
+
+    /*uint8_t payload_len = value_count * 3;   // ID + VAL je Wert = 2 Bytes
 
     if (payload_len > 60) {
         //BMS_state = 3;
@@ -54,15 +88,24 @@ void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count)
     packet[index++] = 0xAA;          // Start
     packet[index++] = type;          // Type
     packet[index++] = payload_len;   // Payload length
-
+*/
     // IDs und Werte übertragen
-    for (int i = 0; i < value_count; i++) {
-        packet[index++] = ids_values[i*2];     // ID
-        packet[index++] = ids_values[i*2 + 1]; // Value
+
+	for (uint8_t i = 0; i < value_count; i++)
+    {
+        packet[index++] = ids_values[i * 3];       // ID
+        packet[index++] = ids_values[i * 3 + 1];   // VALUE_H
+        packet[index++] = ids_values[i * 3 + 2];   // VALUE_L
     }
 
     packet[index++] = 0x55;          // End
 
-    CDC_Transmit_FS(packet, index);	 //Übermittelte Daten müssen ein pointer sein
+    uint8_t res = CDC_Transmit_FS(packet, index);
+    if (res == USBD_BUSY) { usb_busy++; return; }
+    if (res != USBD_OK)   { usb_fail++; return; }
+    usb_ok++;
+
+    //while (CDC_Transmit_FS(packet, index) == USBD_BUSY) { }
+   // CDC_Transmit_FS(packet, index);	 //Übermittelte Daten müssen ein pointer sein
 }
 

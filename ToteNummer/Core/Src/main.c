@@ -28,6 +28,17 @@
 /* USER CODE BEGIN Includes */
 #include "bms.h"
 #include "stdio.h"
+
+
+#include "usb_device.h"
+#include "usb_control.h"
+#include <string.h>
+#include <stdint.h>
+volatile uint8_t usb_pending = 0;
+uint8_t usb_pending_buf[60];
+uint8_t usb_pending_len = 0;
+
+
 extern uint8_t TxHeader;
 extern uint8_t hcan;
 
@@ -145,6 +156,7 @@ int main(void)
   {
 	  gpio();
 	  BMS();
+
   }
 
 
@@ -217,6 +229,8 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+	  HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
+	  HAL_Delay(200);
   }
   /* USER CODE END Error_Handler_Debug */
 }
