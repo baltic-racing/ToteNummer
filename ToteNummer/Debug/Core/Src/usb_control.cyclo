@@ -1,2 +1,2 @@
-../Core/Src/usb_control.c:26:6:USB_control	4
-../Core/Src/usb_control.c:44:6:USB_transmit	4
+../Core/Src/usb_control.c:33:6:USB_control	5
+../Core/Src/usb_control.c:55:6:USB_transmit	7

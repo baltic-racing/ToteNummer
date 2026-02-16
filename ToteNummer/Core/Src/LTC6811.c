@@ -4,8 +4,6 @@
  *  Created on: Nov 8, 2025
  *      Author: racin
  */
-
-
 #include <stdint.h>
 #include "LTC6811.h"
 #include <string.h>

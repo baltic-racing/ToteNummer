@@ -8,8 +8,15 @@
 #ifndef SRC_USB_CONTROL_H_
 #define SRC_USB_CONTROL_H_
 
-void USB_control(char *broadcaster, uint8_t *usb_data, uint8_t data_size);
+#include <stdint.h>
+
+//void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size);
+void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t byte_len);
 void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count);
 
+/*
+void USB_control(char *broadcaster, uint8_t *usb_data, uint8_t data_size);
+void USB_transmit(uint8_t type, uint8_t *ids_values, uint8_t value_count);
+*/
 #endif /* SRC_USB_CONTROL_H_ */
 

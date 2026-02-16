@@ -95,10 +95,13 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 		{
 		}
 	}
-	else
+	/*else
 	{
 		CAN_TX(hcan, TxHeader, TxData);
 	}
+	*/
+	if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) return;
+
 }
 
 	// receive CAN message
@@ -308,10 +311,8 @@ void CAN_10(uint8_t bms_data[])		// CAN Messages transmitted with 10 Hz
 }
 
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void CAN_TIM2_Tick(void)
 {
-	if(htim -> Instance == TIM2)
-	{
 		counter ++;
 
 		TxData[0] = 0;
@@ -328,18 +329,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  			TxHeader.IDE = CAN_ID_STD; // Standard-ID (11-bit)
 	  			TxHeader.RTR = CAN_RTR_DATA;
 	  			TxHeader.StdId = 0x200; // ID
-		if(counter >= 1){
-			HAL_GPIO_TogglePin(LED_GN_GPIO_Port, LED_RD_Pin);
+	  if(counter >= 1){
+		//	HAL_GPIO_TogglePin(LED_GN_GPIO_Port, LED_GN_Pin);
 
 			//CAN_TX(hcan1, TxHeader, TxData);
 			if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0) {
-			                if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
+				if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
 
 			                }
 			            }
 			counter = 0;
 		}
-	}
+
 }
 /*
 Senden des CAN-Datenrahmens
