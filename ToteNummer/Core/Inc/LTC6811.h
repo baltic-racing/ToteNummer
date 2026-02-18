@@ -134,6 +134,9 @@ void wakeup_sleep(void);
 uint16_t pec15_calc(uint8_t len, uint8_t *data);
 void nopDelay(uint32_t cnt);
 
+int8_t LTC6811_rdstatb(uint8_t addr, uint8_t *data);
+
+
 /**
  * @brief Write an array of bytes out of the SPI port (Used as abstraction for compatibility)
  *
@@ -154,13 +157,37 @@ static inline void spi_write_array(uint8_t len, uint8_t data[])
  * @param rx_data pointer to the data array to be received
  * @param rx_len length of the data array to be received
  */
-static inline void spi_write_read(uint8_t tx_Data[], uint8_t tx_len, uint8_t *rx_data, uint8_t rx_len)
+
+static inline void spi_write_read(uint8_t tx_Data[], uint8_t tx_len,
+                                  uint8_t *rx_data, uint8_t rx_len)
+{
+    uint8_t tmp_tx[64] = {0};
+    uint8_t tmp_rx[64] = {0};
+
+    // Kommando vorne rein
+    memcpy(tmp_tx, tx_Data, tx_len);
+
+    // Ein Transfer: cmd senden + dummy clocks für rx
+    HAL_SPI_TransmitReceive(&hspi3, tmp_tx, tmp_rx, tx_len + rx_len, HAL_MAX_DELAY);
+
+    // Antwort steht nach den cmd-bytes
+    memcpy(rx_data, &tmp_rx[tx_len], rx_len);
+}
+
+
+/*static inline void spi_write_read(uint8_t tx_Data[], uint8_t tx_len, uint8_t *rx_data, uint8_t rx_len)
+{
+  HAL_SPI_Transmit(&hspi3, tx_Data, tx_len, HAL_MAX_DELAY);
+  HAL_SPI_Receive(&hspi3, rx_data, rx_len, HAL_MAX_DELAY);
+}
+*/
+/*static inline void spi_write_read(uint8_t tx_Data[], uint8_t tx_len, uint8_t *rx_data, uint8_t rx_len)
 {
   HAL_SPI_Transmit(&hspi3, tx_Data, tx_len, HAL_MAX_DELAY);
   HAL_SPI_Receive(&hspi3, rx_data, rx_len, HAL_MAX_DELAY);
 
 }
-
+*/
 
 
 #endif /* INC_LTC6811_H_ */

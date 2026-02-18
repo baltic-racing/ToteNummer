@@ -34,13 +34,14 @@
 #include "usb_control.h"
 #include <string.h>
 #include <stdint.h>
-volatile uint8_t usb_pending = 0;
+/*volatile uint8_t usb_pending = 0;
 uint8_t usb_pending_buf[60];
 uint8_t usb_pending_len = 0;
 
 
 extern uint8_t TxHeader;
 extern uint8_t hcan;
+*/
 
 void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData){
 	if(*can_exe_flag == 0){ // can_exe_flag = 0 => 0= Can wurde noch nicht gestartet, 1 => Can wurde bereits gestartet
@@ -156,17 +157,7 @@ int main(void)
   {
 	  gpio();
 	  BMS();
-
   }
-
-
-	  //ErrorLed_Task(); damit wird ein Fehler angezeigt
-
-
-	  // CAN_TX(hcan1, AMS0_header, TxData);
-
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -232,8 +223,10 @@ void Error_Handler(void)
 	  HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
 	  HAL_Delay(200);
   }
-  /* USER CODE END Error_Handler_Debug */
 }
+
+  /* USER CODE END Error_Handler_Debug */
+
 
 #ifdef  USE_FULL_ASSERT
 /**
