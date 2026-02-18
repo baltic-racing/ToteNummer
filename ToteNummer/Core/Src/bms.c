@@ -80,7 +80,7 @@ uint8_t cell_number_temp_max = 0;
 uint8_t cell_number_volt_min = 0;
 uint8_t cell_number_volt_max = 0;
 
-extern uint8_t RDSTAT[8];
+extern uint8_t RDSTAT[4];
 extern uint8_t dc_current[8];
 
 //uint8_t data_shit[2] = {0x03, 0x07};
@@ -136,44 +136,43 @@ void BMS()		// Battery Management System function for main loop.
 	if (HAL_GetTick() - last_usb < 100) return;   // nur alle 100ms (10Hz)
 	last_usb = HAL_GetTick();
 
-	uint8_t stA[8];
+	uint8_t stA[8] = {0};
+	int16_t temp_c10 = 0x7FFF;   // Default: Fehlerwert (wichtig!)
+	/*uint8_t stA[8];
 	int16_t temp_c10;   // 0.1 °C aus LTC
-	int8_t  temp_c;     // °C für USB
+	int8_t  temp_c;     // °C für USB*/
 
-	//uint8_t pec = 0;
-	//static uint8_t selTemp = 0;
-
-	//LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
-	//HAL_Delay(3);
-
-	LTC6811_clrstat();		// Write config
+	LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
 	HAL_Delay(3);
 
-	LTC6811_adstat();										// measure voltages
-	HAL_Delay(15);
+	LTC6811_clrstat();
+	HAL_Delay(2);
 
-	///for (int i = 0; i < 8; i++) RDAUXA[i] = 0x00;
+	LTC6811_adstat();
+	HAL_Delay(20);
 
-
-
-	int8_t pec_ok = LTC6811_rdstat(0, stA);
-
-	printf("pec_ok=%d\r\n", pec_ok);
-	printf("STATA: %02X %02X %02X %02X %02X %02X | %02X %02X\r\n",
-	       stA[0], stA[1], stA[2], stA[3], stA[4], stA[5], stA[6], stA[7]);
-
-
-	if (pec_ok == 0 && (stA[2] | stA[3]) != 0)
+	// Status Register A lesen (ITMP liegt in Byte 2 und 3)
+	if (LTC6811_rdstat(0, stA) == 0)
 	{
-	    uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
-	    temp_c10 = (int16_t)(((int32_t)itmp * 2 + 7) / 15 - 2730); // 0.1°C
+		uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+		temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730); // 0.1°C
+		PEC_ERROR = 0;
 	}
 	else
 	{
-	    temp_c10 = 0x7FFF;   // Fehlerwert
-	    PEC_ERROR = 1;
+		temp_c10 = 0x7FFF;
+		PEC_ERROR = 1;
 	}
 
+	AMS1_databytes[0] = (uint8_t)(temp_c10 & 0xFF);
+	AMS1_databytes[1] = (uint8_t)((temp_c10 >> 8) & 0xFF);
+	AMS1_databytes[2] = PEC_ERROR;
+
+	AMS1_databytes[3] = stA[2];
+	AMS1_databytes[4] = stA[3];
+
+
+	/* DAS GEHÖRT ZU USB; DAS HATTEN WIR DRINNEN!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	uint8_t payload[3];
 
 	int16_t t10 = temp_c10;                 // 0.1°C signed
@@ -181,16 +180,17 @@ void BMS()		// Battery Management System function for main loop.
 	payload[1] = (uint8_t)((uint16_t)t10 >> 8);
 	payload[2] = (uint8_t)((uint16_t)t10 & 0xFF);
 	USB_control("slave", payload, 3);
+	*/ //DAS IST USB
 
-	/*
+	uint8_t payload[3];
+
 	uint16_t temp_u16 = (uint16_t)temp_c10;   // 16-Bit Wert (0.1°C)
 	payload[0] = 0x03;                        // ID: LTC_Internal_Temp
 	payload[1] = (uint8_t)(temp_u16 >> 8);   // High Byte
 	payload[2] = (uint8_t)(temp_u16 & 0xFF); // Low Byte
-	*/
+
 
 	USB_control("slave", payload, sizeof(payload)); // = 3
-	//USB_control("slave", payload, 3);
 
 
 	/*uint8_t payload[2];
@@ -204,6 +204,7 @@ void BMS()		// Battery Management System function for main loop.
 	//USB_control(broadcaster, payload, 2);
 
 }
+
 static void BMS_WaitMs(uint32_t ms)
 {
     uint32_t start = HAL_GetTick();
@@ -211,10 +212,6 @@ static void BMS_WaitMs(uint32_t ms)
     {
     }
 }
-
-
-
-
 
 uint16_t calculateTemperature(uint16_t voltageCode, uint16_t referenceCode)		//convert temp
 {
@@ -233,6 +230,7 @@ void CAN_interrupt()
 {
 	if (HAL_GetTick()>= last20 + 20)
 	{
+		can_put_data();           // <-- DAS FEHLT
 		CAN_50(AMS0_databytes);
 		last20 = HAL_GetTick();
 	}
@@ -319,7 +317,7 @@ void convertTemperature(uint8_t selTemp)		// sort temp
 		/*
 		if(!(temp_min < MIN_Temp || temp_max > MAX_Temp))
 					temp_error_time = HAL_GetTick();
-*/
+		 */
 		if(!((temp_min < MIN_Temp && prev_number_temp_min == cell_number_temp_min) || (temp_max > MAX_Temp && prev_number_temp_max == cell_number_temp_max)))
 					temp_error_time = HAL_GetTick();
 
