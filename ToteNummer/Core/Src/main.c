@@ -28,16 +28,14 @@
 /* USER CODE BEGIN Includes */
 #include "bms.h"
 #include "stdio.h"
-
-
 #include "usb_device.h"
 #include "usb_control.h"
 #include <string.h>
 #include <stdint.h>
+
 /*volatile uint8_t usb_pending = 0;
 uint8_t usb_pending_buf[60];
 uint8_t usb_pending_len = 0;
-
 
 extern uint8_t TxHeader;
 extern uint8_t hcan;
@@ -73,6 +71,12 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 /* USER CODE BEGIN PV */
 //uint8_t LED_State = 0;
 extern uint8_t TxData[8];
+
+extern volatile uint8_t  usb_rx_ready;
+extern volatile uint32_t usb_rx_len;
+extern uint8_t usb_rx_data[1024];
+
+extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,14 +119,17 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USB_DEVICE_Init();
+
   MX_TIM9_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_CAN1_Init();
   MX_CAN2_Init();
-  MX_USB_DEVICE_Init();
+
   MX_TIM2_Init();
   MX_SPI3_Init();
+
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LED_GN_GPIO_Port, LED_GN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_YW_GPIO_Port, LED_YW_Pin, GPIO_PIN_SET);
@@ -157,14 +164,28 @@ int main(void)
   {
 	  gpio();
 	  BMS();
-  }
+	  uint8_t buf[1024];
+	 	  // --- USB RX verarbeiten ---
+	 if (usb_rx_ready)
+	 {
+		 __disable_irq();
+		 usb_rx_ready = 0;
+		 uint32_t n = usb_rx_len;
+		 uint8_t rx[1024];
+		 if (n > sizeof(rx)) n = sizeof(rx);
+		 memcpy(rx, usb_rx_data, n);
+		 __enable_irq();
+
+		 uint8_t ack[] = { 0x02, 0x03, 0xF0, 0x00, 0x01 };
+		 CDC_SendBlocking(ack, sizeof(ack), 50);
+	 }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
+  }
 }
-
 /**
   * @brief System Clock Configuration
   * @retval None
