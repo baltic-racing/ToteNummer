@@ -8,8 +8,7 @@
 #ifndef INC_BMS_H_
 #define INC_BMS_H_
 
-
-#include "main.h"
+#include <main.h>
 #include "stdint.h"
 #include "stdbool.h"
 
@@ -24,4 +23,3 @@ void checkIMD(void);
 void checkPEC(uint8_t pec);
 
 #endif /* INC_BMS_H_ */
-

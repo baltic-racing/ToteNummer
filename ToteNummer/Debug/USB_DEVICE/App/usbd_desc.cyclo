@@ -5,5 +5,5 @@
 ../USB_DEVICE/App/usbd_desc.c:280:11:USBD_FS_SerialStrDescriptor	1
 ../USB_DEVICE/App/usbd_desc.c:300:11:USBD_FS_ConfigStrDescriptor	2
 ../USB_DEVICE/App/usbd_desc.c:319:11:USBD_FS_InterfaceStrDescriptor	2
-../USB_DEVICE/App/usbd_desc.c:337:13:Get_SerialNum	2
-../USB_DEVICE/App/usbd_desc.c:359:13:IntToUnicode	3
+../USB_DEVICE/App/usbd_desc.c:337:13:Get_SerialNum	1
+../USB_DEVICE/App/usbd_desc.c:366:13:IntToUnicode	3

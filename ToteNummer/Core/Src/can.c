@@ -81,27 +81,26 @@ void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxDat
 	{
 		if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
 		{
-		    static uint8_t retries = 0;
-		    if (retries < 5) {  // Maximum retries
-		    	retries++;
-			    CAN_TX(hcan, TxHeader, TxData);
-		    } else {
-		        retries = 0;  // Reset retry count after a failure
-		        // Optionally, handle the failure (e.g., by logging it)
-		        HAL_GPIO_WritePin(GPIOD, LED_RD_Pin, GPIO_PIN_SET);
+			static uint8_t retries = 0;
+			if (retries < 5) {  // Maximum retries
+				retries++;
+				CAN_TX(hcan, TxHeader, TxData);
+			} else {
+				retries = 0;  // Reset retry count after a failure
+				// Optionally, handle the failure (e.g., by logging it)
+				HAL_GPIO_WritePin(GPIOD, LED_RD_Pin, GPIO_PIN_SET);
 			}
 		}
 		else
 		{
 		}
 	}
-	/*else
-	{
-		CAN_TX(hcan, TxHeader, TxData);
-	}
-	*/
-	if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) return;
-
+		/*else
+		{
+			CAN_TX(hcan, TxHeader, TxData);
+		}
+		*/
+		if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) return;
 }
 
 	// receive CAN message
