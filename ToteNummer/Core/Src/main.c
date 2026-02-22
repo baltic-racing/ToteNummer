@@ -162,23 +162,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  gpio();
 	  BMS();
-	  uint8_t buf[1024];
-	 	  // --- USB RX verarbeiten ---
-	 if (usb_rx_ready)
-	 {
-		 __disable_irq();
-		 usb_rx_ready = 0;
-		 uint32_t n = usb_rx_len;
-		 uint8_t rx[1024];
-		 if (n > sizeof(rx)) n = sizeof(rx);
-		 memcpy(rx, usb_rx_data, n);
-		 __enable_irq();
-
-		 uint8_t ack[] = { 0x02, 0x03, 0xF0, 0x00, 0x01 };
-		 CDC_SendBlocking(ack, sizeof(ack), 50);
-	 }
+	  gpio();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -83,12 +83,10 @@ uint8_t cell_number_volt_max = 0;
 extern uint8_t RDSTAT[4];
 extern uint8_t dc_current[8];
 
-extern uint8_t RDAUXA[8];
-uint8_t data_shit[2] = {0x03, 0x07};
-
+//extern uint8_t RDAUXA[8];
 //uint8_t data_shit[2] = {0x03, 0x07};
-char broadcaster [10]= "";
 
+char broadcaster [10]= "";
 /* 1 ms interrupt
  * HLCK 96 MHz
  * APB1 48 MHz
@@ -136,71 +134,6 @@ void BMS_init()
 void BMS()		// Battery Management System function for main loop.
 {
 	static uint32_t last_usb = 0;
-	uint8_t pec = 0;
-
-	//if (HAL_GetTick() - last_usb < 100) return;   // nur alle 100ms (10Hz)
-	//last_usb = HAL_GetTick();
-
-	//uint8_t stA[8] = {0};
-	//int16_t temp_c10 = 0x7FFF;   // Default: Fehlerwert (wichtig!)
-
-
-	LTC6811_wrcfg((uint8_t(*)[6])cfg);
-	HAL_Delay(3);
-
-	LTC6811_clraux();
-	HAL_Delay(3);
-
-	LTC6811_adstat();
-	HAL_Delay(3);
-
-	pec = LTC6811_rdadstat(0, RDAUXA);
-	HAL_Delay(3);
-
-	/*
-	if (LTC6811_rdstat(0, stA) == 0)
-	{
-		uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
-		temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730); // 0.1°C
-		PEC_ERROR = 0;
-	}
-	else
-	{
-		temp_c10 = 0x7FFF;
-		PEC_ERROR = 1;
-	}
-
-	AMS1_databytes[0] = (uint8_t)(temp_c10 & 0xFF);
-	AMS1_databytes[1] = (uint8_t)((temp_c10 >> 8) & 0xFF);
-	AMS1_databytes[2] = PEC_ERROR;
-
-	AMS1_databytes[3] = stA[2];
-	AMS1_databytes[4] = stA[3];
-	*/
-
-	// --------- USB Triplet bauen: [ID][H][L]
-	const uint8_t ID_LTC_TEMP = 0x03;   // NICHT zwingend richtig, nur Beispiel
-
-	uint16_t temp_raw = (uint16_t)RDAUXA[0];  // aktuell nur 0..255
-
-	uint8_t data_shit[3];
-	data_shit[0] = ID_LTC_TEMP;
-	data_shit[1] = (uint8_t)(temp_raw >> 8);      // HIGH
-	data_shit[2] = (uint8_t)(temp_raw & 0xFF);    // LOW
-
-	// broadcaster muss ein char array sein, nicht irgendein Pointer auf zu kleinen Speicher
-	//strcpy(broadcaster, "slave");
-
-	if (HAL_GetTick() - last_usb >= 200)
-		{
-			last_usb = HAL_GetTick();
-			//USB_control("slave", triplet, 3);
-			//USB_control(broadcaster, data_shit, 3);
-			USB_control("slave", data_shit, 3);
-		    }
-
-	/*
-	static uint32_t last_usb = 0;
 	if (HAL_GetTick() - last_usb < 100) return;   // nur alle 100ms (10Hz)
 	last_usb = HAL_GetTick();
 	uint8_t stA[8] = {0};
@@ -231,7 +164,7 @@ void BMS()		// Battery Management System function for main loop.
 	payload[1] = (uint8_t)(temp_u16 >> 8);   // High Byte
 	payload[2] = (uint8_t)(temp_u16 & 0xFF); // Low Byte
 	USB_control("slave", payload, sizeof(payload)); // = 3
-	*/
+
 
 }
 
