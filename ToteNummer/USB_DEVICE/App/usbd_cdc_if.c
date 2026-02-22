@@ -154,19 +154,9 @@ USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
 static int8_t CDC_Init_FS(void)
 {
   /* USER CODE BEGIN 3 */
-  /* Set Application Buffers */
-	USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
-	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
-
-	// >>> HIER: ersten Empfang starten (OUT Endpoint "armen") <<<
-	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-
-	return (USBD_OK);
-	/*
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
   return (USBD_OK);
-  */
   /* USER CODE END 3 */
 }
 
@@ -272,30 +262,9 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-	uint32_t n = *Len;
-	if (n > sizeof(usb_rx_data)) n = sizeof(usb_rx_data);
-
-	// wenn main noch nicht abgeholt hat: droppen oder zählen
-	if (usb_rx_ready) {
-		// drop counter optional
-		// usb_drop_cnt++;
-		// Trotzdem: Endpoint wieder "armen", sonst RX hängt!
-		USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-		return (USBD_OK);
-	}
-
-	memcpy(usb_rx_data, Buf, n);
-	usb_rx_len = n;
-	usb_rx_ready = 1;
-
-	// WICHTIG: sofort wieder "armen"
-	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-	return (USBD_OK);
-	/*
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
-  */
   /* USER CODE END 6 */
 }
 

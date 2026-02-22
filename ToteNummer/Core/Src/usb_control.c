@@ -75,7 +75,7 @@ void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
         return;
     }
 
-    uint8_t packet[64];
+    static uint8_t packet[64];
     uint8_t index = 0;
 
     packet[index++] = type;
