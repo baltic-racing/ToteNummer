@@ -289,6 +289,7 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   }
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
+  HAL_GPIO_TogglePin(LED_YW_GPIO_Port, LED_YW_Pin);  // gelbe LED toggelt = nicht configured
   /* USER CODE END 7 */
   return result;
 }

@@ -152,8 +152,8 @@ int main(void)
           Error_Handler();
       }
 
-  	 HAL_TIM_IC_Start_IT(&htim9, TIM_CHANNEL_2);   // main channel
-     HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
+ HAL_TIM_IC_Start_IT(&htim9, TIM_CHANNEL_2);   // main channel
+ HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
 
   IVT_init();
   /* USER CODE END 2 */

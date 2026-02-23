@@ -31,16 +31,12 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
 {
+	/*
     // nur senden wenn USB wirklich fertig eingerichtet ist
     if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
     {
     	return 0;
-    	/*
-        HAL_GPIO_TogglePin(LED_YW_GPIO_Port, LED_YW_Pin);  // gelbe LED toggelt = nicht configured
-        HAL_Delay(100);
-        return 0;
-        */
-    }
+    }*/
 
     uint32_t start = HAL_GetTick();
 
@@ -49,7 +45,7 @@ uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
         if ((HAL_GetTick() - start) > timeout_ms)
             return 0;
 
-        HAL_Delay(1);
+        //HAL_Delay(1);
     }
     return 1;
 }
