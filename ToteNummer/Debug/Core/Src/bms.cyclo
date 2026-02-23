@@ -2,7 +2,7 @@
 ../Core/Src/bms.c:103:6:HAL_CAN_RxFifo0MsgPendingCallback	1
 ../Core/Src/bms.c:109:6:HAL_TIM_IC_CaptureCallback	5
 ../Core/Src/bms.c:129:6:BMS_init	1
-../Core/Src/bms.c:134:6:BMS	2
+../Core/Src/bms.c:134:6:BMS	3
 ../Core/Src/bms.c:172:13:BMS_WaitMs	2
 ../Core/Src/bms.c:180:10:calculateTemperature	3
 ../Core/Src/bms.c:193:6:CAN_interrupt	3
