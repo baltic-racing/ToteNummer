@@ -28,8 +28,19 @@
 /* USER CODE BEGIN Includes */
 #include "bms.h"
 #include "stdio.h"
+#include "usb_device.h"
+#include "usb_control.h"
+#include "usbd_cdc_if.h"
+#include <string.h>
+#include <stdint.h>
+
+/*volatile uint8_t usb_pending = 0;
+uint8_t usb_pending_buf[60];
+uint8_t usb_pending_len = 0;
+
 extern uint8_t TxHeader;
 extern uint8_t hcan;
+*/
 
 void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData){
 	if(*can_exe_flag == 0){ // can_exe_flag = 0 => 0= Can wurde noch nicht gestartet, 1 => Can wurde bereits gestartet
@@ -61,6 +72,12 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 /* USER CODE BEGIN PV */
 //uint8_t LED_State = 0;
 extern uint8_t TxData[8];
+
+extern volatile uint8_t  usb_rx_ready;
+extern volatile uint32_t usb_rx_len;
+extern uint8_t usb_rx_data[1024];
+
+extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,14 +120,17 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USB_DEVICE_Init();
+
   MX_TIM9_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_CAN1_Init();
   MX_CAN2_Init();
-  MX_USB_DEVICE_Init();
+
   MX_TIM2_Init();
   MX_SPI3_Init();
+
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LED_GN_GPIO_Port, LED_GN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_YW_GPIO_Port, LED_YW_Pin, GPIO_PIN_SET);
@@ -133,8 +153,8 @@ int main(void)
           Error_Handler();
       }
 
-  	 HAL_TIM_IC_Start_IT(&htim9, TIM_CHANNEL_2);   // main channel
-     HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
+ HAL_TIM_IC_Start_IT(&htim9, TIM_CHANNEL_2);   // main channel
+ HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
 
   IVT_init();
   /* USER CODE END 2 */
@@ -143,25 +163,15 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  gpio();
 	  BMS();
-  }
-
-
-	  //ErrorLed_Task(); damit wird ein Fehler angezeigt
-
-
-	  // CAN_TX(hcan1, AMS0_header, TxData);
-
-
-
+	  gpio();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
+  }
 }
-
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -217,9 +227,13 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+	  HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
+	  HAL_Delay(200);
   }
-  /* USER CODE END Error_Handler_Debug */
 }
+
+  /* USER CODE END Error_Handler_Debug */
+
 
 #ifdef  USE_FULL_ASSERT
 /**
