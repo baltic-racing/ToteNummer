@@ -82,7 +82,7 @@ void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
     packet[index++] = payload_len;
 
     for (uint8_t i = 0; i < shit_count; i++) {
-        uint8_t base = (uint8_t)(i * 3);
+        uint8_t base = i * 3;
         packet[index++] = data_shit[base + 0]; // ID
         packet[index++] = data_shit[base + 1]; // HIGH
         packet[index++] = data_shit[base + 2]; // LOW
