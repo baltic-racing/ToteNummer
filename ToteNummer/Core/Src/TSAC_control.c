@@ -27,11 +27,14 @@ uint8_t LED_GN_state = 0;
 uint8_t LED_YW_state = 0;
 uint8_t LED_RD_state = 0;
 
-uint8_t data_shit[8];
+uint8_t data_shit[2] = {0x03, 0x07};
 uint8_t config_watch = 1;
 
 uint8_t tim2_100ms = 0;
 uint8_t tim2_10ms = 0;
+
+char broadcaster [10]= "";
+
 /*Functions*/
 
 void TSAC_control(){
@@ -44,10 +47,13 @@ void TSAC_control(){
 	Slave_control(config_watch, data_shit);
 
 /*________________________________________________________________________________________________________*/
-	USB_control(data_shit);
+	//USB_control(data_shit);
+
+	strcpy(broadcaster, "slave");
+	USB_control(broadcaster, &data_shit, (sizeof(data_shit) / 2));
 }
 
-/*________________________________________________________________________________________________________*/
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	    if (htim->Instance == TIM2) {
 	        // 200 ms-Zyklus

@@ -1,0 +1,59 @@
+/*
+ * USB_control.c
+ *
+ *  Created on: Nov 16, 2025
+ *      Author: Egquus
+ */
+
+#include "main.h"
+#include "stdlib.h"
+#include "stdbool.h"
+#include "gpio.h"
+#include "TSAC_control.h"
+#include "Slave_control.h"
+
+extern volatile uint8_t BMS_state;
+
+uint8_t slave_temp [8];
+
+/*
+.__________________________________________.
+| transmit_state | Description             |
+|==========================================|
+|		0x01	 | slave_temp			   |
+|__________________________________________|
+*/
+
+void USB_control(char *broadcaster, uint8_t *usb_data, uint8_t data_size)
+{
+	uint8_t type = 0x00;
+
+	if(strcmp(broadcaster) == "slave"){
+		uint8_t type = 0x03;
+	}
+
+	USB_transmit(type, usb_data, data_size);
+}
+
+void USB_transmit(uint8_t type, uint8_t *usb_data, uint8_t length)
+{
+	if(length < 60){
+		uint8_t packet[64];							//max USB packet Size
+		uint8_t index = 0;
+
+		packet[index++] = 0xAA;					//Startbyte
+		packet[index++] = type;					//Nachrichtentypen
+		packet[index++] = length;				//Länge der Nutzdaten
+
+		for (int i = 0; i < length; i++){
+			packet[index++] = usb_data[i];
+		}
+
+		packet[index++] = 0x55;					//Endbyte
+
+		CDC_Transmit_FS(packet, index);				//Übermittelte Daten müssen ein pointer sein
+	}
+	else{
+		BMS_state = 3;
+	}
+}

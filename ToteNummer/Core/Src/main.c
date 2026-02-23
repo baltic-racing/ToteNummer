@@ -114,7 +114,7 @@ int main(void)
   |		0		| No Error				  |	          |
   |		1		| CAN transmission failed |	  101	  |
   |		2		| CAN receive failed      |	  102	  |
-  |
+  |		3		| USB Massage too long	  |   103	  |
   |___________________________________________________|
   */
 

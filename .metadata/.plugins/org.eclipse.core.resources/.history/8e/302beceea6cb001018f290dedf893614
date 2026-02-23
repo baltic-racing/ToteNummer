@@ -1,0 +1,23 @@
+/*
+ * USB_control.c
+ *
+ *  Created on: Nov 16, 2025
+ *      Author: Egquus
+ */
+
+#include "main.h"
+#include "stdlib.h"
+#include "stdbool.h"
+#include "gpio.h"
+#include "TSAC_control.h"
+#include "Slave_control.h"
+
+uint8_t slave_temp [8];
+
+void USB_control(uint8_t *usb_data)
+{
+	slave_temp [1] = ;
+
+	CDC_Transmit_FS(slave_temp, 1);
+	//CDC_Transmit_FS(usb_data, 8);
+}

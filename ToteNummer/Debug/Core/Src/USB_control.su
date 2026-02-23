@@ -1,1 +1,2 @@
-../Core/Src/USB_control.c:15:6:USB_control	16	static
+../Core/Src/USB_control.c:25:6:USB_control	32	static
+../Core/Src/USB_control.c:42:6:USB_transmit	96	static

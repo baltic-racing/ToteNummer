@@ -87,7 +87,7 @@ void set_setup(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG, uint8_t CHST)
 	md_bits = (MD & 0x01) << 7;
 	ADAX[1] = md_bits | 0x60 | CHG;
 
-	CLRAUX[0] = 0x0E;
+	CLRAUX[0] = 0x07; //0x0E;
 	CLRAUX[1] = 0x12;
 
 	/*md_bits = (MD & 0x02) >> 1;
