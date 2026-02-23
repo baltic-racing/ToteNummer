@@ -3,10 +3,10 @@
 ../Core/Src/bms.c:109:6:HAL_TIM_IC_CaptureCallback	24	static
 ../Core/Src/bms.c:129:6:BMS_init	8	static
 ../Core/Src/bms.c:134:6:BMS	32	static
-../Core/Src/bms.c:171:13:BMS_WaitMs	24	static
-../Core/Src/bms.c:179:10:calculateTemperature	24	static
-../Core/Src/bms.c:192:6:CAN_interrupt	56	static
-../Core/Src/bms.c:214:6:sortTemperature	32	static
-../Core/Src/bms.c:237:6:convertTemperature	24	static
-../Core/Src/bms.c:302:6:checkPEC	16	static
-../Core/Src/bms.c:315:6:checkIMD	16	static
+../Core/Src/bms.c:172:13:BMS_WaitMs	24	static
+../Core/Src/bms.c:180:10:calculateTemperature	24	static
+../Core/Src/bms.c:193:6:CAN_interrupt	56	static
+../Core/Src/bms.c:215:6:sortTemperature	32	static
+../Core/Src/bms.c:238:6:convertTemperature	24	static
+../Core/Src/bms.c:303:6:checkPEC	16	static
+../Core/Src/bms.c:316:6:checkIMD	16	static
