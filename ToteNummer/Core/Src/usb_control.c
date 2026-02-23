@@ -31,23 +31,37 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
 {
+    uint32_t start = HAL_GetTick();
+    uint8_t st;
+
+    do
+    {
+        st = CDC_Transmit_FS(buf, len);
+
+        if (st == USBD_FAIL) {
+            // noch nicht konfiguriert / ClassData nicht bereit
+            return 0;
+        }
+
+        if ((HAL_GetTick() - start) > timeout_ms) {
+            return 0;
+        }
+    } while (st == USBD_BUSY);
+
+    return 1; // USBD_OK
 	/*
     // nur senden wenn USB wirklich fertig eingerichtet ist
     if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
     {
     	return 0;
-    }*/
-
     uint32_t start = HAL_GetTick();
-
     while (CDC_Transmit_FS(buf, len) == USBD_BUSY)
     {
         if ((HAL_GetTick() - start) > timeout_ms)
             return 0;
-
         //HAL_Delay(1);
     }
-    return 1;
+    return 1;*/
 }
 
 void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size_bytes)

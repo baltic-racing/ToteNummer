@@ -30,6 +30,7 @@
 #include "stdio.h"
 #include "usb_device.h"
 #include "usb_control.h"
+#include "usbd_cdc_if.h"
 #include <string.h>
 #include <stdint.h>
 
