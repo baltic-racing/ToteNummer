@@ -134,7 +134,7 @@ void BMS_init()
 void BMS()		// Battery Management System function for main loop.
 {
 	static uint32_t last_usb = 0;
-	//if (HAL_GetTick() - last_usb > 100) return;   // nur alle 100ms (10Hz)
+	if (HAL_GetTick() - last_usb > 100) return;   // nur alle 100ms (10Hz)
 	last_usb = HAL_GetTick();
 	uint8_t stA[8] = {0};
 	int16_t temp_c10 = 0x7FFF;			// Default: Fehlerwert (wichtig!)
@@ -163,7 +163,7 @@ void BMS()		// Battery Management System function for main loop.
 	payload[0] = 0x03;                        // ID: LTC_Internal_Temp
 	payload[1] = (uint8_t)(temp_u16 >> 8);   // High Byte
 	payload[2] = (uint8_t)(temp_u16 & 0xFF); // Low Byte
-	USB_control("debug", payload, sizeof(payload)); // = 3
+	USB_control("slave", payload, sizeof(payload)); // = 3
 
 
 

@@ -77,9 +77,37 @@ void USB_control(const char *broadcaster, uint8_t *usb_data, uint8_t data_size_b
     USB_transmit(type, usb_data, triplet_count);
 }
 
+#define CMD_STX 0x02
+
+void USB_transmit(uint8_t type, const uint8_t *data, uint8_t triplet_count)
+{
+    uint8_t payload_len = (uint8_t)(triplet_count * 3); // ID,H,L
+    if (payload_len > 60) return; // wegen STX+TYPE+LEN+CHK = +4
+
+    static uint8_t packet[64];
+    uint8_t idx = 0;
+    uint8_t chk = 0;
+
+    packet[idx++] = CMD_STX;
+    packet[idx++] = type;
+    packet[idx++] = payload_len;
+
+    for (uint8_t i = 0; i < payload_len; i++) {
+        packet[idx++] = data[i];
+    }
+
+    for (uint8_t i = 0; i < idx; i++) {
+        chk ^= packet[i];
+    }
+    packet[idx++] = chk;
+
+    CDC_SendBlocking(packet, idx, 50);
+}
+
+/*
 void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
 {
-    uint8_t payload_len = (uint8_t)(shit_count * 3);   // [ID][H][L]
+	uint8_t payload_len = (uint8_t)(shit_count * 3);   // [ID][H][L]
 
     if (payload_len > 62) {
         return;
@@ -100,7 +128,7 @@ void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
 
     //CDC_Transmit_FS(packet, index);
     CDC_SendBlocking(packet, index, 50);
-}
+}*/
 
 /*
 #include "main.h"
