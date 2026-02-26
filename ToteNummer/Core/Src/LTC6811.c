@@ -34,23 +34,13 @@ void LTC6811_initialize()
  //set_selftest(MD_NORMAL, ST_1);
 }
 
-void wakeup_idle(void)
-{
-    uint8_t dummy[2] = {0x00, 0x00};
-
-    HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi3, dummy, 2, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
-}
-
-/*
 void wakeup_idle()
 {
 	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
 }
-*/
+
 /*!******************************************************************************************************************
  \brief Maps  global ADC control variables to the appropriate control bytes for each of the different ADC commands
 
@@ -222,11 +212,11 @@ int8_t LTC6811_rdstat(uint8_t addr, uint8_t *data)
 	spi_write_read(RDSTAT, 4, data, 8);
 	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
 
-	//uint16_t received_pec = ((uint16_t)data[6] << 8) | data[7];
-	//uint16_t calc_pec     = pec15_calc(6, &data[0]);
+	uint16_t received_pec = ((uint16_t)data[6] << 8) | data[7];
+	uint16_t calc_pec     = pec15_calc(6, &data[0]);
 
-	//return (received_pec == calc_pec) ? 0 : -1;
-	return 0;
+	return (received_pec == calc_pec) ? 0 : -1;
+	//return 0;
 }
 
 void LTC6811_wrcfg(uint8_t config [][6])

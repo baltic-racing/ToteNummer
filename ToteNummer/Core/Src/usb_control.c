@@ -19,7 +19,16 @@
 #include <stdint.h>
 
 extern volatile uint8_t BMS_state;
+extern USBD_HandleTypeDef hUsbDeviceFS;
 
+static uint8_t rxBuffer[256];
+static volatile uint16_t rxWrite = 0, rxRead = 0;
+
+uint8_t debug_tx_buffer[64];
+uint8_t debug_tx_len;
+
+uint8_t debug_len = 0;
+uint8_t debug_buffer[64];
 /*
 .______________.
 | transmit_state | Description             |
@@ -27,19 +36,42 @@ extern volatile uint8_t BMS_state;
 |      0x03      | slave_temp              |
 |______________|
 */
-extern USBD_HandleTypeDef hUsbDeviceFS;
+void USB_DataReceived(uint8_t* data, uint32_t len)
+{
+    for (uint32_t i = 0; i < len; i++) {
+        uint16_t next = (rxWrite + 1) % 256;
+        if (next != rxRead) {   // Platz?
+            rxBuffer[rxWrite] = data[i];
+            rxWrite = next;
+        }
+    }
+}
+
+int8_t USB_GetByte(uint8_t* byte)
+{
+    if (rxRead == rxWrite) return -1;
+    *byte = rxBuffer[rxRead];
+    rxRead = (rxRead + 1) % 256;
+    return 0;
+}
 
 uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
 {
-    uint32_t start = HAL_GetTick();
+    if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
+    {
+    	return 0;
+    }
+	uint32_t start = HAL_GetTick();
     uint8_t st;
 
     do
     {
         st = CDC_Transmit_FS(buf, len);
 
+        if (st == USBD_OK) {
+        	return 1;
+        }
         if (st == USBD_FAIL) {
-            // noch nicht konfiguriert / ClassData nicht bereit
             return 0;
         }
 
@@ -48,7 +80,7 @@ uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
         }
     } while (st == USBD_BUSY);
 
-    return 1; // USBD_OK
+    return 0;
 	/*
     // nur senden wenn USB wirklich fertig eingerichtet ist
     if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED)
