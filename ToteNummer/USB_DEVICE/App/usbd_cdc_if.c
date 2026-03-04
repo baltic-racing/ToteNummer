@@ -23,6 +23,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include <string.h>
+#include "usbd_cdc.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -293,7 +294,7 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 7 */
   if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED || hUsbDeviceFS.pClassData == NULL) {
-    HAL_GPIO_TogglePin(LED_YW_GPIO_Port, LED_YW_Pin); // optional Debug-LED
+    //HAL_GPIO_TogglePin(LED_YW_GPIO_Port, LED_YW_Pin); // optional Debug-LED
     return USBD_FAIL;
   }
 
@@ -303,11 +304,17 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   }
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-  HAL_GPIO_TogglePin(LED_YW_GPIO_Port, LED_YW_Pin);  // gelbe LED toggelt = nicht configured
+  //HAL_GPIO_TogglePin(LED_YW_GPIO_Port, LED_YW_Pin);  // gelbe LED toggelt = nicht configured
   /* USER CODE END 7 */
   return result;
 }
 
+uint8_t CDC_IsBusy(void)
+{
+    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+    if (hcdc == NULL) return 1;
+    return (hcdc->TxState != 0);
+}
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */

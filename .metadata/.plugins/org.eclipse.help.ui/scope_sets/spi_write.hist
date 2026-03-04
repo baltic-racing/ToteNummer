@@ -1,0 +1,4 @@
+#Fri Feb 27 02:37:02 CET 2026
+__DEFAULT__=false
+expression=spi_write
+org.eclipse.help.ui.localSearch.master=true
