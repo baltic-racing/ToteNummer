@@ -1,5 +1,3 @@
-../Core/Src/usb_control.c:39:6:USB_DataReceived	24	static
-../Core/Src/usb_control.c:50:8:USB_GetByte	16	static
 ../Core/Src/usb_control.c:58:9:CDC_SendBlocking	32	static
-../Core/Src/usb_control.c:99:6:USB_control	32	static
-../Core/Src/usb_control.c:114:6:USB_transmit	24	static
+../Core/Src/usb_control.c:86:6:USB_control	32	static
+../Core/Src/usb_control.c:101:6:USB_transmit	24	static

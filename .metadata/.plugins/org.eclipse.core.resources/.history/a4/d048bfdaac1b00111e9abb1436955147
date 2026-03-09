@@ -4,6 +4,8 @@
  *  Created on: Nov 29, 2025
  *      Author: finja
  */
+
+
 #include "bms.h"
 #include "main.h"
 #include "LTC6811.h"

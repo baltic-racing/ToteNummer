@@ -21,6 +21,7 @@
 extern volatile uint8_t BMS_state;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
+static uint8_t rxBuffer[256];
 static volatile uint16_t rxWrite = 0, rxRead = 0;
 
 uint8_t debug_tx_buffer[64];
@@ -35,7 +36,6 @@ uint8_t debug_buffer[64];
 |      0x03      | slave_temp              |
 |______________|
 */
-/*
 void USB_DataReceived(uint8_t* data, uint32_t len)
 {
     for (uint32_t i = 0; i < len; i++) {
@@ -53,7 +53,7 @@ int8_t USB_GetByte(uint8_t* byte)
     *byte = rxBuffer[rxRead];
     rxRead = (rxRead + 1) % 256;
     return 0;
-}*/
+}
 
 uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
 {

@@ -21,6 +21,7 @@
 extern volatile uint8_t BMS_state;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
+static uint8_t rxBuffer[256];
 static volatile uint16_t rxWrite = 0, rxRead = 0;
 
 uint8_t debug_tx_buffer[64];
