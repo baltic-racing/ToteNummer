@@ -20,5 +20,8 @@ void convertTemperature(uint8_t selTemp);
 void CAN_interrupt(void);
 void checkIMD(void);
 void checkPEC(uint8_t pec);
+void send_usb();
+uint8_t getbalancingKP(uint16_t minVoltage);
+
 
 #endif /* INC_BMS_H_ */

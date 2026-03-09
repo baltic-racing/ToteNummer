@@ -1,0 +1,82 @@
+/*
+ * ams_processing.c
+ *
+ *  Created on: Mar 9, 2026
+ *      Author: finja
+ */
+#include "ams_processing.h"
+#include "bms.h"
+
+extern uint16_t ts_volt_can = 0;
+
+extern uint16_t cellVoltages[NUM_CELLS] = {0};	//cell voltages in 0.1[mV]
+extern int16_t cellTemperatures[NUM_CELLS] = {0}; //cell temperatures in 0.1[°C]
+extern uint16_t temperature[NUM_CELLS] = {0};
+
+extern uint8_t index_i = 0;
+extern uint8_t index_k = 0;
+extern uint8_t cell_number_temp_min = 0;
+extern uint8_t cell_number_temp_max = 0;
+extern uint8_t cell_number_volt_min = 0;
+extern uint8_t cell_number_volt_max = 0;
+
+extern uint8_t dc_current[8];
+
+void convertVoltage()		//convert and sort Voltages
+{
+	ts_volt_can = 0;
+	for(uint8_t i = 0; i < NUM_CELLS; i++)
+	{
+		//usb_voltages[i] = cellVoltages[i]/1000;
+		ts_volt_can = ts_volt_can + cellVoltages[i]/100;
+	}
+
+	static uint16_t cell_max;
+	static uint16_t cell_min;
+
+	static uint8_t prev_number_volt_max = 0;
+	static uint8_t prev_number_volt_min = 0;
+
+	cell_max = cellVoltages[0];
+	cell_min = cellVoltages[0];
+
+
+	for(uint8_t k = 0; k < NUM_STACK; k++)
+	{
+		for(uint8_t i = 0; i < NUM_CELLS_STACK; i++)
+		{
+			if(cellVoltages[i + k * 12] > cell_max && (cellVoltages[i + k * 12] < 45000 || cellVoltages[i + k * 12] > 60000) && (i+1)%12 != 0)
+			{
+				cell_max = cellVoltages[i + k * 12];
+				cell_number_volt_max = i + k * 12;
+				dc_current[3] = cell_number_volt_max;
+			}
+			else if(cellVoltages[i + k * 12] < cell_min && (cellVoltages[i + k * 12] > 23000 || cellVoltages[i + k * 12] < 5000) && (i+1)%12 != 0)
+			{
+				cell_min = cellVoltages[i + k * 12];
+				cell_number_volt_min = i + k * 12;
+				dc_current[0] = cell_number_volt_min;
+			}
+		}
+	}
+
+	if(!((cell_min < MIN_VOLTAGE && cell_number_volt_min == prev_number_volt_min) || (cell_max > MAX_VOLTAGE && cell_number_volt_max == prev_number_volt_max)))
+		volt_error_time = HAL_GetTick();
+	/*
+	if(!(cell_min < MIN_VOLTAGE || cell_max > MAX_VOLTAGE))
+		volt_error_time = HAL_GetTick();
+*/
+	//if(HAL_GetTick() - volt_error_time >= volt_detect_time)
+	//	AMS_ERROR = 1;
+
+	blancing_Voltage = cell_min;
+	max_voltage = cell_max;
+
+	AMS1_databytes[0] = cell_min;
+	AMS1_databytes[1] = (cell_min >> 8);
+	AMS1_databytes[2] = cell_max;
+	AMS1_databytes[3] = (cell_max >> 8);
+
+	prev_number_volt_max = cell_number_volt_max;
+	prev_number_volt_min = cell_number_volt_min;
+}

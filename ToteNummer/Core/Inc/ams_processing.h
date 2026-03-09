@@ -1,0 +1,13 @@
+/*
+ * ams_processing.h
+ *
+ *  Created on: Mar 9, 2026
+ *      Author: finja
+ */
+
+#ifndef INC_AMS_PROCESSING_H_
+#define INC_AMS_PROCESSING_H_
+
+
+
+#endif /* INC_AMS_PROCESSING_H_ */
