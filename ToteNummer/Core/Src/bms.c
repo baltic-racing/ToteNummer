@@ -53,6 +53,8 @@ uint8_t cfg[NUM_STACK][6] = {{0}}; //0x38 disables the GPIO1..3 pulldown so GPIO
 uint16_t slaveGPIOs[NUM_GPIO] = {0};
 uint16_t temperature[NUM_CELLS] = {0};
 
+uint8_t LTCtemperature = {0};
+
 uint8_t AMS0_databytes[8];
 uint8_t AMS1_databytes[8];
 
@@ -82,12 +84,7 @@ uint8_t cell_number_temp_max = 0;
 uint8_t cell_number_volt_min = 0;
 uint8_t cell_number_volt_max = 0;
 
-extern uint8_t RDSTAT[4];
-extern uint8_t RDADSTAT[4];
 extern uint8_t dc_current[8];
-
-//extern uint8_t RDAUXA[8];
-//uint8_t data_shit[2] = {0x03, 0x07};
 
 char broadcaster [10]= "";
 /* 1 ms interrupt
@@ -136,53 +133,56 @@ void BMS_init()
 
 void BMS()		// Battery Management System function for main loop.
 {
-	static uint32_t last_usb = 0;
-	if (HAL_GetTick() - last_usb < 100) return;  // 100ms
-	last_usb = HAL_GetTick();
-
-	//uint8_t stA[8] = {0};
-	uint8_t stA[8 * NUM_STACK];
-	memset(stA, 0xAA, sizeof(stA));
-	int16_t temp_c10 = 0x7FFF;
-
-	LTC6811_wrcfg((uint8_t(*)[6])cfg);		// Write config
-	HAL_Delay(3);
-	LTC6811_clrstat();
-	HAL_Delay(2);
-	LTC6811_rdadstat();
-	HAL_Delay(20);
-	LTC6811_adstat();
-	HAL_Delay(20);
-
-	uint8_t stA0[8], stA1[8];
-	static uint32_t last_ping = 0;
-	if (HAL_GetTick() - last_ping > 1000) {
-	    last_ping = HAL_GetTick();
-
-	    uint8_t stA0[8];
-	    memset(stA0, 0xAA, sizeof(stA0));
-
-	    int8_t r0 = LTC6811_rdstat(0, stA0);
-
-	    char dbg[120];
-	    snprintf(dbg, sizeof(dbg),
-	             "PING r0=%d stA0=%02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-	             r0,
-	             stA0[0], stA0[1], stA0[2], stA0[3],
-	             stA0[4], stA0[5], stA0[6], stA0[7]);
-	    CDC_Transmit_FS((uint8_t*)dbg, strlen(dbg));
-	}
-
+	uint8_t pec = 0;
+	static uint8_t selTemp = 0;
+	int16_t temp_c10 = 0;
 	/*
-	int8_t rd = LTC6811_rdstat(0, stA);
+    static uint32_t last_usb = 0;
+    if (HAL_GetTick() - last_usb < 100) return;
+    last_usb = HAL_GetTick();
+    */
 
-	char dbg[100];
-	snprintf(dbg, sizeof(dbg),
-	         "rd=%d stA=%02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-	         rd,
-	         stA[0], stA[1], stA[2], stA[3],
-	         stA[4], stA[5], stA[6], stA[7]);
-	CDC_Transmit_FS((uint8_t*)dbg, strlen(dbg));
+    uint8_t stA[8] = {0};
+
+    for (uint8_t i = 0; i < NUM_STACK; i++)
+    {
+    	cfg[i][0] = 0x3C | ((selTemp << 6) & 0xC0);
+        cfg[i][1] = 0x00;
+        cfg[i][2] = 0x00;
+        cfg[i][3] = 0x00;
+        cfg[i][4] = 0x00;
+        cfg[i][5] = 0x00;
+        cfg[i][6] = 0x00;
+		cfg[i][7] = 0x00;
+    }
+
+    LTC6811_wrcfg(cfg);
+    HAL_Delay(3);
+
+	LTC6811_adcv();										// measure voltages
+	HAL_Delay(3);
+
+	pec = LTC6811_rdcv(0, (uint16_t(*)[12])cellVoltages);	//read voltages
+	HAL_Delay(3);
+
+	LTC6811_clraux();
+	HAL_Delay(3);
+
+	LTC6811_adax();										// measure 3 celltemp
+	HAL_Delay(3);
+
+	pec = LTC6811_rdaux(0, (uint16_t(*)[6])slaveGPIOs);	// read celltemp
+	HAL_Delay(3);
+
+    LTC6811_clrstat();
+    HAL_Delay(2);
+
+    LTC6811_adstat();
+    HAL_Delay(3);
+
+    //pec = LTC6811_rdstat(0, (uint8_t(*)[8])LTCtemperature);
+
+    int8_t rd = LTC6811_rdstat(7, stA);
 
 	if (rd == 0)   // <-- rd wiederverwenden, kein zweiter Aufruf!
 	{
@@ -192,15 +192,15 @@ void BMS()		// Battery Management System function for main loop.
 	else
 	{
 		temp_c10 = 0x7FFF;
-	}*/
+	}
 
 	uint8_t payload[3];
 	payload[0] = 0x03;
 	payload[1] = (uint8_t)(temp_c10 >> 8);
 	payload[2] = (uint8_t)(temp_c10);
 	USB_control("slave", payload, sizeof(payload));
-
 /*
+
 	uint8_t payload[3];
 	uint16_t temp_u16 = (uint16_t)temp_c10;   // 16-Bit Wert (0.1°C)
 	payload[0] = 0x03;                        // ID: LTC_Internal_Temp

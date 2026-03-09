@@ -36,24 +36,11 @@ void LTC6811_initialize()
 
 void wakeup_idle()
 {
-    uint8_t dummy[2] = {0x00, 0x00};
-
-    HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi3, dummy, sizeof(dummy), HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
-
-    // kurze Pause reicht
-    // HAL_Delay(1);
-}
-/*
-void wakeup_idle()
-{
 	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(&hspi3, &wakeup, 1, 1);
 	HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
 	HAL_Delay(1);
 }
-*/
 /*!******************************************************************************************************************
  \brief Maps  global ADC control variables to the appropriate control bytes for each of the different ADC commands
 
@@ -447,7 +434,7 @@ void LTC6811_rdaux_reg(uint8_t reg, uint8_t *data)
     return temp_pec;
 }
 
-void LTC681x_rdstat_reg(uint8_t reg, uint8_t total_ic, uint8_t data[])
+void LTC6811x_rdstat_reg(uint8_t reg, uint8_t total_ic, uint8_t data[])
 {
     const uint8_t REG_LEN = 8;   // STATA/B/C/D = 6 data bytes + 2 PEC
     uint8_t cmd[4];
