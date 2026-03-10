@@ -167,7 +167,7 @@ int main(void)
   while (1)
   {
 	  BMS();
-	  gpio();
+	  //gpio();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

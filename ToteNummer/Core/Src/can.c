@@ -401,11 +401,13 @@ void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Prescaler = 3; //16;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_13TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_2TQ;
+  //hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
+  //hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
   hcan2.Init.AutoWakeUp = DISABLE;
@@ -432,18 +434,18 @@ void MX_CAN2_Init(void)
 
     HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig_ivt);
 
-    CAN_FilterTypeDef canfilterconfig_ivt1;
-    canfilterconfig_ivt1.FilterActivation = CAN_FILTER_ENABLE;
-      canfilterconfig_ivt1.FilterBank = 15;  // which filter bank to use from the assigned ones
-      canfilterconfig_ivt1.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-      canfilterconfig_ivt1.FilterIdHigh = 0x527<<5;
-      canfilterconfig_ivt1.FilterIdLow = 0;
-      canfilterconfig_ivt1.FilterMaskIdHigh = 0x7FF<<5;
-      canfilterconfig_ivt1.FilterMaskIdLow = 0x0000;
-      canfilterconfig_ivt1.FilterMode = CAN_FILTERMODE_IDMASK;
-      canfilterconfig_ivt1.FilterScale = CAN_FILTERSCALE_32BIT;
-      canfilterconfig_ivt1.SlaveStartFilterBank = 14;
-    HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig_ivt1);
+	CAN_FilterTypeDef canfilterconfig_ivt1;
+	canfilterconfig_ivt1.FilterActivation = CAN_FILTER_ENABLE;
+	  canfilterconfig_ivt1.FilterBank = 15;  // which filter bank to use from the assigned ones
+	  canfilterconfig_ivt1.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	  canfilterconfig_ivt1.FilterIdHigh = 0x527<<5;
+	  canfilterconfig_ivt1.FilterIdLow = 0;
+	  canfilterconfig_ivt1.FilterMaskIdHigh = 0x7FF<<5;
+	  canfilterconfig_ivt1.FilterMaskIdLow = 0x0000;
+	  canfilterconfig_ivt1.FilterMode = CAN_FILTERMODE_IDMASK;
+	  canfilterconfig_ivt1.FilterScale = CAN_FILTERSCALE_32BIT;
+	  canfilterconfig_ivt1.SlaveStartFilterBank = 14;
+	HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig_ivt1);
   /* USER CODE END CAN2_Init 2 */
 
 }

@@ -36,11 +36,16 @@ extern "C" {
 
 /* USER CODE END Private defines */
 void MX_GPIO_Init(void);
-void gpio(void);
-void ErrorLed_Task(void);
-void LED_State(void);
-/* USER CODE BEGIN Prototypes */
+//void gpio(void);
+//void ErrorLed_Task(void);
+//void LED_State(void);
 
+/* USER CODE BEGIN Prototypes */
+void open_sdc(void);
+void close_sdc(void);
+uint8_t read_sdc(void);
+uint8_t check_AIRs(void);
+void get_ts_ready(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

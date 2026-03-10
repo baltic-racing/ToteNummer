@@ -18,7 +18,6 @@
 #include "usbd_cdc_if.h"
 #include <string.h>
 #include <string.h>
-#include "ams_processing.h"
 
 uint8_t precharge = 0;
 
@@ -136,11 +135,10 @@ void BMS()		// Battery Management System function for main loop.
 	uint8_t pec = 0;
 	static uint8_t selTemp = 0;
 
-	/*
-    static uint32_t last_usb = 0;
-    if (HAL_GetTick() - last_usb < 100) return;
-    last_usb = HAL_GetTick();
-    */
+	get_ts_ready();
+
+	precharge |= ADC_TS_Voltage(MAX_TS_VOLTAGE, MIN_TS_VOLTAGE);
+
     for (uint8_t i = 0; i < NUM_STACK; i++)
     {
     	cfg[i][0] = 0x3C | ((selTemp << 6) & 0xC0);
