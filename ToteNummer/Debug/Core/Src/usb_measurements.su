@@ -1,0 +1,4 @@
+../Core/Src/usb_measurements.c:30:6:USB_Send_TS_Voltage	16	static
+../Core/Src/usb_measurements.c:40:6:USB_Send_TS_Current	16	static
+../Core/Src/usb_measurements.c:50:6:USB_Send_CellTempMin	16	static
+../Core/Src/usb_measurements.c:62:6:USB_Send_StackDetail	80	static

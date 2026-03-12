@@ -54,6 +54,57 @@ int8_t USB_GetByte(uint8_t* byte)
     rxRead = (rxRead + 1) % 256;
     return 0;
 }*/
+void USB_control(const char *broadcaster, uint8_t *data_shit, uint8_t data_size_bytes)
+{
+    uint8_t type = 0x00;
+
+    if (strcmp(broadcaster, "ID_TS_Voltage") == 0) type = 0x21;
+    else if (strcmp(broadcaster, "ID_TS_Current") == 0) type = 0x22;
+    else if (strcmp(broadcaster, "ID_TS_Currentdrawn") == 0) type = 0x23;
+    else if (strcmp(broadcaster, "ID_TS_AMS_Status") == 0) type = 0x24;
+    else if (strcmp(broadcaster, "ID_TS_Cell_Voltages_max") == 0) type = 0x25;
+    else if (strcmp(broadcaster, "ID_TS_Cell_Voltages_min") == 0) type = 0x26;
+    else if (strcmp(broadcaster, "ID_TS_Cell_Temprearure_max") == 0) type = 0x27;
+    else if (strcmp(broadcaster, "ID_TS_Cell_Temprearure_min") == 0) type = 0x28;
+    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Voltages_max") == 0) type = 0x29;
+    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Voltages_min") == 0) type = 0x2A;
+    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Temprearure_max") == 0) type = 0x2B;
+    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Temprearure_min") == 0) type = 0x2C;
+    else if (strcmp(broadcaster, "ID_LTC_Temperature") == 0) type = 0x2D;
+    else return;
+
+
+    // data_size_bytes muss N*3 sein
+    uint8_t shit_count = (uint8_t)(data_size_bytes);
+    USB_transmit(type, data_shit, shit_count);
+}
+
+#define CMD_STX 0x02
+
+void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
+{
+    uint8_t payload_len = (uint8_t)(shit_count); // ID,H,L
+    if (payload_len > 60) return; // wegen STX+TYPE+LEN+CHK = +4
+
+    static uint8_t packet[64];
+    uint8_t idx = 0;
+    uint8_t chk = 0;
+
+    packet[idx++] = CMD_STX;
+    packet[idx++] = type;
+    packet[idx++] = payload_len;
+
+    for (uint8_t i = 0; i < payload_len; i++) {
+        packet[idx++] = data_shit[i];
+    }
+
+    for (uint8_t i = 0; i < idx; i++) {
+        chk ^= packet[i];
+    }
+    packet[idx++] = chk;
+
+    CDC_SendBlocking(packet, idx, 50);
+}
 
 uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
 {
@@ -81,58 +132,6 @@ uint8_t CDC_SendBlocking(uint8_t *buf, uint16_t len, uint32_t timeout_ms)
     } while (st == USBD_BUSY);
 
     return 0;
-}
-
-void USB_control(const char *broadcaster, uint8_t *data_shit, uint8_t data_size_bytes)
-{
-    uint8_t type = 0x00;
-
-    if (strcmp(broadcaster, "ID_TS_Voltage ") == 0)  type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Current") == 0) type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Currentdrawn") == 0)      type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_AMS_Status") == 0)     type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cell_Voltages_max") == 0) type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cell_Voltages_min") == 0) type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cell_Temprearure_max") == 0)    type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cell_Temprearure_min") == 0) type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Voltages_max") == 0)      type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Voltages_min") == 0)     type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Temprearure_max") == 0) type = 0x03;
-    else if (strcmp(broadcaster, "ID_TS_Cellnumer_Temprearure_min") == 0) type = 0x03;
-    else if (strcmp(broadcaster, "ID_LTC_Temperature") == 0)    type = 0x03;
-    else return;
-
-
-    // data_size_bytes muss N*3 sein
-    uint8_t shit_count = (uint8_t)(data_size_bytes / 3);
-    USB_transmit(type, data_shit, shit_count);
-}
-
-#define CMD_STX 0x02
-
-void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
-{
-    uint8_t payload_len = (uint8_t)(shit_count * 3); // ID,H,L
-    if (payload_len > 60) return; // wegen STX+TYPE+LEN+CHK = +4
-
-    static uint8_t packet[64];
-    uint8_t idx = 0;
-    uint8_t chk = 0;
-
-    packet[idx++] = CMD_STX;
-    packet[idx++] = type;
-    packet[idx++] = payload_len;
-
-    for (uint8_t i = 0; i < payload_len; i++) {
-        packet[idx++] = data_shit[i];
-    }
-
-    for (uint8_t i = 0; i < idx; i++) {
-        chk ^= packet[i];
-    }
-    packet[idx++] = chk;
-
-    CDC_SendBlocking(packet, idx, 50);
 }
 
 /*

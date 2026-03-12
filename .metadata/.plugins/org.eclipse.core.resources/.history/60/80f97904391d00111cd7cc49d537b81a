@@ -1,0 +1,150 @@
+/*
+ * usb_measurements.c
+ *
+ *  Created on: Mar 11, 2026
+ *      Author: finja
+ */
+
+#include "usb_measurements.h"
+
+#include "bms.h"
+#include "usb_control.h"
+#include "LTC6811.h"
+#include <stdint.h>
+
+/* Variablen aus bms.c */
+extern uint16_t ts_volt_can;
+extern uint16_t blancing_Voltage;
+extern uint16_t max_voltage;
+extern uint16_t current;
+
+extern uint8_t AMS1_databytes[8];
+
+extern uint8_t cell_number_volt_min;
+extern uint8_t cell_number_volt_max;
+extern uint8_t cell_number_temp_min;
+extern uint8_t cell_number_temp_max;
+
+
+
+static void USB_Send3Byte(const char *name, uint8_t id, uint16_t value)
+{
+    uint8_t payload[3];
+    payload[0] = id;
+    payload[1] = (uint8_t)(value >> 8);
+    payload[2] = (uint8_t)(value & 0xFF);
+
+    USB_control(name, payload, 3);
+}
+
+void USB_Send_TS_Voltage(void)
+{
+    USB_Send3Byte("ID_TS_Voltage", 0x21, ts_volt_can);
+}
+
+void USB_Send_TS_Current(void)
+{
+    USB_Send3Byte("ID_TS_Current", 0x22, current);
+}
+
+void USB_Send_CellVoltageMin(void)
+{
+    USB_Send3Byte("ID_TS_Cell_Voltages_min", 0x26, blancing_Voltage);
+}
+
+void USB_Send_CellVoltageMax(void)
+{
+    USB_Send3Byte("ID_TS_Cell_Voltages_max", 0x25, max_voltage);
+}
+
+void USB_Send_CellTempMin(void)
+{
+    uint16_t temp_min = (uint16_t)(AMS1_databytes[4] | (AMS1_databytes[5] << 8));
+    USB_Send3Byte("ID_TS_Cell_Temprearure_min", 0x28, temp_min);
+}
+
+void USB_Send_CellTempMax(void)
+{
+    uint16_t temp_max = (uint16_t)(AMS1_databytes[6] | (AMS1_databytes[7] << 8));
+    USB_Send3Byte("ID_TS_Cell_Temprearure_max", 0x27, temp_max);
+}
+
+void USB_Send_CellNumberVoltageMin(void)
+{
+    USB_Send3Byte("ID_TS_Cellnumer_Voltages_min", 0x2A, cell_number_volt_min);
+}
+
+void USB_Send_CellNumberVoltageMax(void)
+{
+    USB_Send3Byte("ID_TS_Cellnumer_Voltages_max", 0x29, cell_number_volt_max);
+}
+
+void USB_Send_CellNumberTempMin(void)
+{
+    USB_Send3Byte("ID_TS_Cellnumer_Temprearure_min", 0x2C, cell_number_temp_min);
+}
+
+void USB_Send_CellNumberTempMax(void)
+{
+    USB_Send3Byte("ID_TS_Cellnumer_Temprearure_max", 0x2B, cell_number_temp_max);
+}
+/*
+void LTCTemperature()
+{
+	int16_t temp_c10 = 0;
+    uint8_t stA[8] = {0};
+    int8_t rd = LTC6811_rdstat(7, stA);
+
+	if (rd == 0)   // <-- rd wiederverwenden, kein zweiter Aufruf!
+	{
+	    uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+	    temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+	}
+	else
+	{
+		temp_c10 = 0x7FFF;
+	}
+
+	//return temp_c10;
+
+	uint8_t payload[3];
+	payload[0] = 0x2D;
+	payload[1] = (uint8_t)(temp_c10 >> 8);
+	payload[2] = (uint8_t)(temp_c10);
+
+	USB_control("ID_LTC_Temperature", payload, sizeof(payload));
+}*/
+
+void LTCTemperature(void)
+{
+    int16_t temp_c10 = 0;
+    uint8_t stA[7] = {0};
+    int8_t rd = LTC6811_rdstat(7, stA);
+
+    if (rd == 0)
+    {
+        uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+        temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+    }
+    else
+    {
+        temp_c10 = 0x7FFF;
+    }
+
+    USB_Send3Byte("ID_LTC_Temperature", 0x2D, (uint16_t)temp_c10);
+}
+
+void send_usb_measurements(void)
+{
+    USB_Send_TS_Voltage();
+    USB_Send_TS_Current();
+    USB_Send_CellVoltageMin();
+    USB_Send_CellVoltageMax();
+    USB_Send_CellTempMin();
+    USB_Send_CellTempMax();
+    USB_Send_CellNumberVoltageMin();
+    USB_Send_CellNumberVoltageMax();
+    USB_Send_CellNumberTempMin();
+    USB_Send_CellNumberTempMax();
+    LTCTemperature();
+}

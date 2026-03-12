@@ -15,6 +15,7 @@
 #include "define.h"
 #include "gpio.h"
 #include "usb_control.h"
+#include "usb_measurements.h"
 #include "usbd_cdc_if.h"
 #include <string.h>
 #include <string.h>
@@ -58,7 +59,6 @@ uint8_t usb_temperatures[NUM_CELLS_STACK*NUM_STACK] = {0};
 uint8_t AMS0_databytes[8];
 uint8_t AMS1_databytes[8];
 
-
 uint16_t OV_flag[NUM_STACK];
 uint16_t UV_flag[NUM_STACK];
 uint8_t r_statb[NUM_STACK][6];
@@ -83,6 +83,10 @@ uint8_t cell_number_temp_min = 0;
 uint8_t cell_number_temp_max = 0;
 uint8_t cell_number_volt_min = 0;
 uint8_t cell_number_volt_max = 0;
+
+int16_t ltcTemps_raw[NUM_STACK] = {0};      // Reihenfolge wie vom LTC-Treiber gelesen
+int16_t ltcTemps_c10[NUM_STACK] = {0};      // Reihenfolge nach physischem Stack
+int16_t temp_c10 = 0;
 
 extern uint8_t dc_current[8];
 
@@ -163,7 +167,7 @@ void BMS()		// Battery Management System function for main loop.
 					for(uint8_t j = 0; j < 3; j++)
 					{
 						if(cellVoltages[i * NUM_STACK + j + 8] - blancing_Voltage > balanceMargin)cfg[i][5] |= 1 << j;
-					}
+					}//Muss da NUM_STACK stehen oder NUM_CELLS_STACK???????????????????????????????????????????????, also in beiden for-Schleifen
 				}
 			}
 
@@ -196,7 +200,6 @@ void BMS()		// Battery Management System function for main loop.
 
 	convertVoltage();
 	convertTemperature(selTemp);
-
 	LTCTemperature();
 
 	checkPEC(pec);
@@ -231,44 +234,9 @@ void BMS()		// Battery Management System function for main loop.
 	}
 
 	can_put_data();
-
+	send_usb_measurements();
 }
 
-void LTCTemperature()
-{
-	int16_t temp_c10 = 0;
-    uint8_t stA[8] = {0};
-    int8_t rd = LTC6811_rdstat(7, stA);
-
-	if (rd == 0)   // <-- rd wiederverwenden, kein zweiter Aufruf!
-	{
-	    uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
-	    temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
-	}
-	else
-	{
-		temp_c10 = 0x7FFF;
-	}
-
-	//return temp_c10;
-
-	uint8_t payload[3];
-	payload[0] = 0x03;
-	payload[1] = (uint8_t)(temp_c10 >> 8);
-	payload[2] = (uint8_t)(temp_c10);
-
-	USB_control("ID_LTC_Temperature", payload, sizeof(payload));
-
-/*
-	uint8_t payload[3];
-	uint16_t temp_u16 = (uint16_t)temp_c10;   // 16-Bit Wert (0.1°C)
-	payload[0] = 0x03;                        // ID: LTC_Internal_Temp
-	payload[1] = (uint8_t)(temp_u16 >> 8);   // High Byte
-	payload[2] = (uint8_t)(temp_u16 & 0xFF); // Low Byte
-	USB_control("slave", payload, sizeof(payload)); // = 3
-	*/
-
-}
 static void BMS_WaitMs(uint32_t ms)
 {
     uint32_t start = HAL_GetTick();
@@ -351,39 +319,39 @@ uint16_t calculateTemperature(uint16_t voltageCode, uint16_t referenceCode)		//c
 
 void CAN_interrupt()
 {
-	if (HAL_GetTick()>= last20 + 20)
-	{
-		CAN_50(AMS0_databytes);
-		last20 = HAL_GetTick();
-	}
-	if (HAL_GetTick()>= last100 + 100)
-	{
-		CAN_10(AMS1_databytes);
+    if (HAL_GetTick() >= last20 + 20)
+    {
+        CAN_50(AMS0_databytes);
+        last20 = HAL_GetTick();
+    }
 
-		HAL_GPIO_TogglePin(GPIOA, WDI_Pin);
-		HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);
-		last100 = HAL_GetTick();
-	}
+    if (HAL_GetTick() >= last100 + 100)
+    {
+        CAN_10(AMS1_databytes);
+
+        HAL_GPIO_TogglePin(GPIOA, WDI_Pin);
+        HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);
+        last100 = HAL_GetTick();
+    }
 }
-/*
-void CAN_interrupt()
+
+void send_usb_measurements(void)
 {
-	if (HAL_GetTick()>= last20 + 20)
-	{
-		CAN_50(AMS0_databytes);
-		last20 = HAL_GetTick();
-	}
-	if (HAL_GetTick()>= last100 + 100)
-	{
-		CAN_10(AMS1_databytes);
+	static uint8_t next_stack = 0;
 
-		HAL_GPIO_TogglePin(GPIOA, WDI_Pin);		// toggle watchdog
-		HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);	// toggle LED
-		last100 = HAL_GetTick();
-		send_usb();
-	}
+    USB_Send_TS_Voltage();
+    USB_Send_TS_Current();
+    USB_Send_CellTempMin();
+    LTCTemperature();
+
+    USB_Send_StackDetail(next_stack);
+
+    next_stack++;
+    if (next_stack >= NUM_STACK)
+    {
+        next_stack = 0;
+    }
 }
-*/
 
 uint16_t find_me = 0;
 uint8_t test2 = 0;
@@ -508,23 +476,6 @@ void checkIMD()
 	}
 }
 
-void send_usb()
-{
-	usb_data[NUM_CELLS * 3 + 2] = 0xff;
-	usb_data[NUM_CELLS * 3 + 3] = 0xff;
-	usb_data[NUM_CELLS * 3] = current >> 8;
-	usb_data[NUM_CELLS * 3 + 1] = current;
-	for(uint8_t i = 0; i < NUM_CELLS; i++)
-	{
-		usb_data[2*i] = ((cellVoltages[i]/10)>>8);
-		usb_data[2*i+1] = (cellVoltages[i]/10);
-		usb_data[2*NUM_CELLS + i] = usb_temperatures[i];
-	}
-
-	CDC_Transmit_FS(usb_data, NUM_CELLS * 3 + 4);
-
-}
-
 uint8_t getbalancingKP(uint16_t minVoltage)
 {
 	uint8_t KP ;
@@ -543,3 +494,99 @@ uint8_t getbalancingKP(uint16_t minVoltage)
 	return KP;
 }
 
+const uint8_t ltc_raw_to_stack[NUM_STACK] =
+{
+    6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7
+};
+
+void LTCTemperature(void)
+{
+    uint8_t stA[NUM_STACK][8] = {0};
+    int8_t rd = LTC6811_rdstat(7, (uint8_t*)stA);
+
+    if (rd == 0)
+    {
+        for (uint8_t raw = 0; raw < NUM_STACK; raw++)
+        {
+            uint16_t itmp = (uint16_t)stA[raw][2] | ((uint16_t)stA[raw][3] << 8);
+            ltcTemps_raw[raw] = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+        }
+
+        for (uint8_t raw = 0; raw < NUM_STACK; raw++)
+        {
+            uint8_t stack = ltc_raw_to_stack[raw];
+            ltcTemps_c10[stack] = ltcTemps_raw[raw];
+        }
+    }
+    else
+    {
+        for (uint8_t i = 0; i < NUM_STACK; i++)
+        {
+            ltcTemps_raw[i] = 0x7FFF;
+            ltcTemps_c10[i] = 0x7FFF;
+        }
+    }
+}
+
+/*
+void LTCTemperature(void)
+{
+    uint8_t stA[NUM_STACK][8] = {0};
+    int8_t rd = LTC6811_rdstat(7, (uint8_t *)stA);
+
+    if (rd == 0)
+    {
+        for (uint8_t i = 0; i < NUM_STACK; i++)
+        {
+            uint16_t itmp = (uint16_t)stA[i][2] | ((uint16_t)stA[i][3] << 8);
+            ltcTemps_c10[i] = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+        }
+
+        temp_c10 = ltcTemps_c10[0];
+    }
+    else
+    {
+        for (uint8_t i = 0; i < NUM_STACK; i++)
+        {
+            ltcTemps_c10[i] = 0x7FFF;
+        }
+
+        temp_c10 = 0x7FFF;
+    }
+
+    uint8_t payload[1 + NUM_STACK * 2];
+    payload[0] = 0x2D;
+
+    for (uint8_t i = 0; i < NUM_STACK; i++)
+    {
+        payload[1 + 2*i]     = (uint8_t)(ltcTemps_c10[i] >> 8);
+        payload[1 + 2*i + 1] = (uint8_t)(ltcTemps_c10[i] & 0xFF);
+    }
+
+    USB_control("ID_LTC_Temperature", payload, sizeof(payload));
+}
+
+//Die Funktion ist auf jeden Fall nur für einen LTC richtig
+void LTCTemperature(void)
+{
+    uint8_t stA[8] = {0};
+    int8_t rd = LTC6811_rdstat(7, stA);
+
+    if (rd == 0)
+    {
+        uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+        temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+    }
+    else
+    {
+        temp_c10 = 0x7FFF;
+    }
+
+    uint8_t payload[3];
+    payload[0] = 0x2D;
+    payload[1] = (uint8_t)(temp_c10 >> 8);
+    payload[2] = (uint8_t)(temp_c10 & 0xFF);
+
+    USB_control("ID_LTC_Temperature", payload, sizeof(payload));
+}
+*/

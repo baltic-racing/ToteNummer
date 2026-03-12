@@ -1,0 +1,109 @@
+/*
+ * usb_measurements.c
+ *
+ *  Created on: Mar 11, 2026
+ *      Author: finja
+ */
+
+#include "usb_measurements.h"
+
+#include "bms.h"
+#include "usb_control.h"
+#include "LTC6811.h"
+#include <stdint.h>
+
+/* Variablen aus bms.c */
+extern uint16_t ts_volt_can;
+extern uint16_t blancing_Voltage;
+extern uint16_t max_voltage;
+extern uint16_t current;
+extern uint8_t AMS1_databytes[8];
+extern uint8_t cell_number_volt_min;
+extern uint8_t cell_number_volt_max;
+extern uint8_t cell_number_temp_min;
+extern uint8_t cell_number_temp_max;
+
+void USB_Send_TS_Voltage(void)
+{
+    uint8_t payload[3];
+    payload[0] = 0x21;
+    payload[1] = (uint8_t)(ts_volt_can >> 8);
+    payload[2] = (uint8_t)(ts_volt_can & 0xFF);
+
+    USB_control("ID_TS_Voltage", payload, sizeof(payload));
+}
+
+void USB_Send_TS_Current(void)
+{
+    uint8_t payload[3];
+    payload[0] = 0x22;
+    payload[1] = (uint8_t)(current >> 8);
+    payload[2] = (uint8_t)(current & 0xFF);
+
+    USB_control("ID_TS_Current", payload, sizeof(payload));
+}
+
+void USB_Send_CellTempMin(void)
+{
+    uint16_t temp_min = (uint16_t)(AMS1_databytes[4] | (AMS1_databytes[5] << 8));
+
+    uint8_t payload[3];
+    payload[0] = 0x28;
+    payload[1] = (uint8_t)(temp_min >> 8);
+    payload[2] = (uint8_t)(temp_min & 0xFF);
+
+    USB_control("ID_TS_Cell_Temprearure_min", payload, sizeof(payload));
+}
+
+void LTCTemperature(void)
+{
+    int16_t temp_c10 = 0;
+    int16_t temp_c11 = 0;
+    uint8_t stA[8] = {0};
+    int8_t rd = LTC6811_rdstat(7, stA);
+
+    if (rd == 0)
+    {
+        uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+        temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+        temp_c11 = (int16_t)(temp_c11 * 10);
+    }
+    else
+    {
+        temp_c10 = 0x7FFF;
+    }
+
+    uint8_t payload[3];
+    payload[0] = 0x2D;
+    payload[1] = (uint8_t)(temp_c11 >> 8);
+    payload[2] = (uint8_t)(temp_c11 & 0xFF);
+
+    USB_control("ID_LTC_Temperature", payload, sizeof(payload));
+}
+
+/*
+void LTCTemperature()
+{
+	int16_t temp_c10 = 0;
+    uint8_t stA[8] = {0};
+    int8_t rd = LTC6811_rdstat(7, stA);
+
+	if (rd == 0)   // <-- rd wiederverwenden, kein zweiter Aufruf!
+	{
+	    uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
+	    temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
+	}
+	else
+	{
+		temp_c10 = 0x7FFF;
+	}
+
+	//return temp_c10;
+
+	uint8_t payload[3];
+	payload[0] = 0x2D;
+	payload[1] = (uint8_t)(temp_c10 >> 8);
+	payload[2] = (uint8_t)(temp_c10);
+
+	USB_control("ID_LTC_Temperature", payload, sizeof(payload));
+}*/
