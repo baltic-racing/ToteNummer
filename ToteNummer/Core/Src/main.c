@@ -167,7 +167,6 @@ int main(void)
   while (1)
   {
 	  BMS();
-	  //gpio();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -230,8 +229,9 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-	  HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
-	  HAL_Delay(200);
+	  //erstmal auskommentieren, könnte falsch sein ------------------------------------------------------------------------------------------------------------------------
+	  //HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
+	  //HAL_Delay(200);
   }
 }
 

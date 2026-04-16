@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -22,8 +22,9 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN 0 */
-#include "can.h"
+
 #include "define.h"
+#include "can.h"
 
 extern uint8_t precharge;
 extern uint8_t ts_on;
@@ -44,12 +45,21 @@ uint32_t precharge_time = 0;
 uint8_t precharge_check = 0;
 
 uint8_t AIR_N_check = 0;
+
 /* USER CODE END 0 */
 
 /*----------------------------------------------------------------------------*/
 /* Configure GPIO                                                             */
 /*----------------------------------------------------------------------------*/
 /* USER CODE BEGIN 1 */
+/*
+void open_sdc()
+{
+	HAL_GPIO_WritePin(SC_OPEN_GPIO_Port, SC_OPEN_Pin, GPIO_PIN_RESET);
+
+}
+*/
+
 void close_sdc()
 {
 	HAL_GPIO_WritePin(SC_OPEN_GPIO_Port, SC_OPEN_Pin, GPIO_PIN_SET);
@@ -94,22 +104,26 @@ uint8_t check_AIRs() 		// returns 1 if all AIRs are in their intended state
 
 void get_ts_ready()
 {
+	if(!switch_on)
+			{
+				precharge_time = HAL_GetTick();
+			}
 
-	if(ts_on == 1 && check_AIRs() == 1 && sc_state == 0)
+	if(ts_on == 1 && check_AIRs() == 1)
 	{
 		//HAL_GPIO_WritePin(GPIOC, LED_YW_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_SET);
 
-		if(HAL_GetTick() - precharge_time >= TSON_RESET_TIME)
+		if(HAL_GetTick() - precharge_time >= switch_time) //AIR switching time
 		{
 
 			if(read_sdc())
 			{
 				//delay checking precharge 1 sec for static measurements
-				if(HAL_GetTick() - precharge_time >= precharge_check_time && precharge)
+				if(HAL_GetTick() - precharge_time >= precharge_check_time )//&& precharge)//&&!ts_ready
 				{
-					HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_SET);
 					ts_ready = 1;
+					HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_SET);
 					HAL_GPIO_WritePin(GPIOC, LED_YW_Pin, GPIO_PIN_SET);
 				}
 			}
@@ -123,8 +137,94 @@ void get_ts_ready()
 				{
 					precharge_time = HAL_GetTick();
 				}
+
 				HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_RESET);
 				HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_RESET);
+				precharge = 0;
+			}
+		}
+
+	}
+
+
+}
+
+/*
+void get_ts_ready()
+{
+
+	if(!(switch_on == 1))
+	{
+		precharge_time = HAL_GetTick();
+	}
+
+	if(ts_on == 1 && check_AIRs() == 1 && sc_state == 0)
+	{
+		HAL_GPIO_WritePin(GPIOC, LED_YW_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_SET);
+
+		//delay checking precharge 1 sec for static measurements
+		if(HAL_GetTick() - precharge_time >= precharge_check_time)
+		{
+			precharge_check = 1;
+			switch_on = 0;
+		}
+
+		if(precharge_check == 0 && ts_start == 1)
+		{
+			ts_start = 0;
+		}
+
+
+		if(HAL_GetTick() - precharge_time >= TSON_RESET_TIME)
+		{
+			AIR_N_check = 1;
+		}
+
+		if(AIR_N_check)
+		{
+			if(read_sdc() == 0)
+			{
+				ts_ready = 0;
+				ts_on = 0;
+				ts_start = 0;
+				precharge_check = 0;
+				//charging = 0;
+				HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_RESET);
+			}
+			AIR_N_check = 0;
+		}
+
+
+
+		if(precharge_check == 1 && precharge == 1)//&& precharge)
+		{
+			if(read_sdc() == 0)
+			{
+				ts_ready = 0;
+				ts_on = 0;
+				ts_start = 0;
+				precharge_check = 0;
+				//charging = 0;
+				HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_RESET);
+			}
+			else
+			{
+				if(charging == 1)
+				{
+					HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_SET);
+					//HAL_GPIO_WritePin(GPIOC, LED_RD_Pin, GPIO_PIN_RESET);
+				}
+
+				if(ts_start == 1)
+				{
+					ts_ready = 1;
+					HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_SET);
+					//HAL_GPIO_WritePin(GPIOC, LED_RD_Pin, GPIO_PIN_RESET);
+				}
+
 			}
 		}
 
@@ -133,18 +233,13 @@ void get_ts_ready()
 	{
 		ts_ready = 0;
 		ts_on = 0;
-		switch_on = 0;
+		ts_start = 0;
 		HAL_GPIO_WritePin(GPIOC, AIR_P_SW_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_RESET);
-
-		if(!switch_on)
-		{
-			precharge_time = HAL_GetTick();
-		}
 		HAL_GPIO_WritePin(TS_ACTIVATE_GPIO_Port, TS_ACTIVATE_Pin, GPIO_PIN_RESET);
 	}
 
 }
+*/
 /* USER CODE END 1 */
 
 /** Configure pins as
@@ -164,15 +259,10 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, LED_GN_Pin|LED_YW_Pin|LED_RD_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_SET);
-  //HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, LED_GN_Pin|LED_YW_Pin|LED_RD_Pin|SC_STATE_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(WDI_GPIO_Port, WDI_Pin, GPIO_PIN_RESET);
@@ -186,7 +276,8 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(AIR_P_SW_GPIO_Port, AIR_P_SW_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PCPin PCPin PCPin */
+  /*Configure GPIO pins : PCPin PCPin PCPin PCPin
+                           PCPin */
   GPIO_InitStruct.Pin = LED_GN_Pin|LED_YW_Pin|LED_RD_Pin|SC_STATE_Pin
                           |AIR_P_SW_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -242,30 +333,5 @@ void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 2 */
-/*
-static uint64_t lastGN = 0;		// Zeitpunkt null
-// Last GN nicht immer auf null setzen, immer auf den Wert in if-Bedingung, sondern auf now, also auf den Zeitpukt der if-Schleife , die Zeit vergangen ist
-
-void gpio(){
-
-	//LED grün (blinkend)
-		uint64_t now = HAL_GetTick();	// Zeitpunkt jetzt
-		if(now - lastGN >= 500){
-			HAL_GPIO_TogglePin(LED_GN_GPIO_Port, LED_GN_Pin);
-			lastGN = now;				// TogglePin wieder aufrufen
-		}
-}
-
-
-void ErrorLed_Task(){
-
-	HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
-}
-// irgendwas mit dem Akku => gelbe LED?
-
-void LED_State(){
-	HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
-}
-*/
 
 /* USER CODE END 2 */

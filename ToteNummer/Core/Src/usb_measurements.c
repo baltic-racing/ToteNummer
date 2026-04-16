@@ -25,6 +25,7 @@ extern uint8_t cell_number_temp_max;
 
 extern uint16_t cellVoltages[NUM_CELLS];
 extern uint16_t temperature[NUM_CELLS];
+extern int16_t ltcTemps_c10[NUM_STACK];
 
 
 void USB_Send_TS_Voltage(void)
@@ -86,4 +87,19 @@ void USB_Send_StackDetail(uint8_t stack)
     }
 
     USB_transmit(0x40, payload, idx);
+}
+
+void USB_Send_LTC_AllStacks(void)
+{
+    uint8_t payload[NUM_STACK * 2];
+    uint8_t idx = 0;
+
+    for (uint8_t i = 0; i < NUM_STACK; i++)
+    {
+        int16_t t = ltcTemps_c10[i];
+        payload[idx++] = (uint8_t)(t >> 8);
+        payload[idx++] = (uint8_t)(t & 0xFF);
+    }
+
+    USB_transmit(0x90, payload, idx);
 }

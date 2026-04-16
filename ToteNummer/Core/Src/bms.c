@@ -17,8 +17,7 @@
 #include "usb_control.h"
 #include "usb_measurements.h"
 #include "usbd_cdc_if.h"
-#include <string.h>
-#include <string.h>
+#include "string.h"
 
 uint8_t precharge = 0;
 
@@ -193,7 +192,7 @@ void BMS()		// Battery Management System function for main loop.
 	HAL_Delay(3);
 
     LTC6811_clrstat();
-    HAL_Delay(2);
+    HAL_Delay(3);
 
     LTC6811_adstat();
     HAL_Delay(3);
@@ -335,24 +334,6 @@ void CAN_interrupt()
     }
 }
 
-void send_usb_measurements(void)
-{
-	static uint8_t next_stack = 0;
-
-    USB_Send_TS_Voltage();
-    USB_Send_TS_Current();
-    USB_Send_CellTempMin();
-    LTCTemperature();
-
-    USB_Send_StackDetail(next_stack);
-
-    next_stack++;
-    if (next_stack >= NUM_STACK)
-    {
-        next_stack = 0;
-    }
-}
-
 uint16_t find_me = 0;
 uint8_t test2 = 0;
 
@@ -476,6 +457,79 @@ void checkIMD()
 	}
 }
 
+/*
+void send_usb_measurements(void)
+{
+	static uint8_t next_stack = 0;
+
+    USB_Send_TS_Voltage();
+    USB_Send_TS_Current();
+    USB_Send_CellTempMin();
+    //USB_Send_LTC_AllStacks();
+
+    USB_Send_StackDetail(next_stack);
+
+    next_stack++;
+    if (next_stack >= NUM_STACK)
+    {
+        next_stack = 0;
+    }
+}*/
+
+void send_usb_measurements(void)
+{
+    static uint8_t slot = 0;
+    static uint8_t next_stack = 0;
+    static uint8_t ltc_divider = 0;
+    static uint32_t last_usb = 0;
+
+    uint32_t now = HAL_GetTick();
+
+    if (now - last_usb < 20)
+    {
+        return;
+    }
+    last_usb = now;
+
+    switch (slot)
+    {
+        case 0:
+            USB_Send_TS_Voltage();
+            break;
+
+        case 1:
+            USB_Send_TS_Current();
+            break;
+
+        case 2:
+            USB_Send_CellTempMin();
+            break;
+
+        case 3:
+            if (++ltc_divider >= 5)
+            {
+                ltc_divider = 0;
+                USB_Send_LTC_AllStacks();
+            }
+            break;
+
+        default:
+            USB_Send_StackDetail(next_stack);
+            next_stack++;
+            if (next_stack >= NUM_STACK)
+            {
+                next_stack = 0;
+            }
+            break;
+    }
+
+    slot++;
+    if (slot >= (4 + NUM_STACK))
+    {
+        slot = 0;
+    }
+}
+
 uint8_t getbalancingKP(uint16_t minVoltage)
 {
 	uint8_t KP ;
@@ -494,10 +548,7 @@ uint8_t getbalancingKP(uint16_t minVoltage)
 	return KP;
 }
 
-const uint8_t ltc_raw_to_stack[NUM_STACK] =
-{
-    6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7
-};
+const uint8_t ltc_raw_to_stack[NUM_STACK] = {6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7};
 
 void LTCTemperature(void)
 {
@@ -565,7 +616,8 @@ void LTCTemperature(void)
 
     USB_control("ID_LTC_Temperature", payload, sizeof(payload));
 }
-
+*/
+/*
 //Die Funktion ist auf jeden Fall nur für einen LTC richtig
 void LTCTemperature(void)
 {
