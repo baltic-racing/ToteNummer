@@ -134,6 +134,8 @@ void LTC6811_rdcv_reg(uint8_t reg, uint8_t *data);
 uint8_t LTC6811_rdaux(uint8_t reg, uint16_t aux_codes[][6]);
 void LTC6811_rdaux_reg(uint8_t reg, uint8_t *data);
 void LTC6811_rdstat_reg(uint8_t reg, uint8_t total_ic, uint8_t data[]);
+void LTC6811_read_all_internal_temps(void);
+
 void LTC6811_clrcell(void);
 void LTC6811_clrstat(void);
 void LTC6811_clraux(void);

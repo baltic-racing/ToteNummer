@@ -233,6 +233,8 @@ void BMS()		// Battery Management System function for main loop.
 	}
 
 	can_put_data();
+	LTC6811_read_all_internal_temps();
+	USB_Send_LTC_AllStacks();
 	send_usb_measurements();
 }
 
