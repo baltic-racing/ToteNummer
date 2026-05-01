@@ -43,7 +43,8 @@ void MX_CAN1_Init(void);
 void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t *TxData);
+//void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t *TxData);
+void CAN_TX(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data);
 void CAN_TX_IVT(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t *TxData);
 void CAN_RX(CAN_HandleTypeDef hcan);
 void CAN_RX_IVT(CAN_HandleTypeDef hcan);
@@ -53,6 +54,7 @@ void can_put_data(void);
 void IVT_MODE(uint8_t mode);
 void IVT_ACTIVATE(uint8_t channel);
 void IVT_init(void);
+
 
 void CAN_Send_All_LTC_Temps_Frame(uint8_t frame);
 /* USER CODE END Prototypes */

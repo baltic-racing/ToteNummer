@@ -28,354 +28,313 @@
 #include "tim.h"
 #include "bms.h"
 
-extern uint8_t AMS0_databytes[8];
-extern uint8_t AMS1_databytes[8];
+extern uint8_t AMS0_databytes[8];          // CAN-Datenarray für AMS0 Nachricht
+extern uint8_t AMS1_databytes[8];          // CAN-Datenarray für AMS1 Nachricht
 
-extern uint16_t cellVoltages[NUM_CELLS];
-extern uint16_t temperature[NUM_CELLS];
-extern int16_t ltcTemps_c10[NUM_STACK];
+extern uint16_t cellVoltages[NUM_CELLS];   // Zellspannungen aus BMS
+extern uint16_t temperature[NUM_CELLS];     // Temperaturen aus BMS
+extern int16_t ltcTemps_c10[NUM_STACK];     // LTC Temperaturen in 0,1 °C
 
-extern uint8_t precharge;
-extern  uint16_t adc_accu_volt;
-extern uint16_t imdStatValue ;
-uint8_t DIC0_databytes[8];
-uint8_t dc_current[8];
-uint32_t current_data = 0;
-uint16_t current = 0;
-uint8_t ts_on = 0;
-uint8_t ts_start = 0;
-uint8_t charging = 0;
-uint8_t ams_status = 0;
-uint8_t switch_on = 0;
-uint32_t capacity_data = 0;
+extern uint8_t precharge;                  // Status Precharge
+extern uint16_t adc_accu_volt;              // Akkuspannung vom ADC
+extern uint16_t imdStatValue;               // IMD Statuswert
 
-extern uint16_t ts_volt_can;
-extern int16_t temp_c10;
+extern uint16_t ts_volt_can;                // Traktionssystemspannung für CAN
+extern int16_t temp_c10;                    // Temperatur in 0,1 °C
 
-extern uint8_t ts_ready ;
-extern uint8_t IMD_ERROR;
-extern uint8_t AMS_ERROR;
+extern uint8_t ts_ready;                    // TS Ready Status
+extern uint8_t IMD_ERROR;                   // IMD Fehlerstatus
+extern uint8_t AMS_ERROR;                   // AMS Fehlerstatus
 
-uint32_t ivt_error_time = 0;
+uint8_t DIC0_databytes[8];                  // Empfangene/gesendete DIC Daten
+uint8_t dc_current[8];                      // CAN-Daten für DC-Strom
 
-uint8_t counter = 0;
+uint32_t current_data = 0;                  // Rohwert vom IVT Stromsensor
+int32_t current = 0;                        // Stromwert, signed weil Strom negativ sein kann
+
+uint8_t ts_on = 0;                          // TS Einschaltanforderung
+uint8_t ts_start = 0;                       // TS Startstatus
+uint8_t charging = 0;                       // Ladezustand
+uint8_t ams_status = 0;                     // Laufender Statuszähler
+uint8_t switch_on = 0;                      // Schalterstatus
+
+uint32_t capacity_data = 0;                 // Kapazitätswert vom IVT
+uint32_t ivt_error_time = 0;                // Zeitpunkt der letzten IVT Nachricht
+
+uint8_t counter = 0;                        // Allgemeiner Zähler
+
+/*
 CAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[8];
 uint32_t TxMailbox;
 uint32_t TxMailbox2;
+*/
 
-#define STOP 0
-#define RUN 1
+#define STOP 0                              // IVT Stop-Modus
+#define RUN  1                              // IVT Run-Modus
 
-#define IVT_MSG_RESULT_T 4
-#define IVT_MSG_RESULT_W 5
-#define IVT_MSG_RESULT_As 6
-#define IVT_MSG_RESULT_Wh 7
-
-CAN_TxHeaderTypeDef AMS0_header = {0x200, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-CAN_TxHeaderTypeDef AMS1_header = {0x201, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-CAN_TxHeaderTypeDef AMS2_header = {0x210, 0 , CAN_ID_STD, CAN_RTR_DATA, 8};
-
-CAN_TxHeaderTypeDef AMS4_header = {0x220, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-CAN_TxHeaderTypeDef AMS5_header = {0x221, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-CAN_TxHeaderTypeDef AMS6_header = {0x222, 0, CAN_ID_STD, CAN_RTR_DATA, 8};
-
-CAN_TxHeaderTypeDef IVT_MSG_COMMAND = {0x411, 0,CAN_ID_STD, CAN_RTR_DATA,8};
-
-
+#define IVT_MSG_RESULT_T   4                // IVT Temperaturkanal
+#define IVT_MSG_RESULT_W   5                // IVT Leistungskanal
+#define IVT_MSG_RESULT_As  6                // IVT Kapazität in As
+#define IVT_MSG_RESULT_Wh  7                // IVT Energie in Wh
 
 // transmit CAN Message
-void CAN_TX(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxData)
+void CAN_TX(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data)
 {
-	uint32_t TxMailbox;
-	uint32_t freeMailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
-	if(freeMailboxes > 0)
-	{
-		if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-		{
-			static uint8_t retries = 0;
-			if (retries < 5) {  // Maximum retries
-				retries++;
-				CAN_TX(hcan, TxHeader, TxData);
-			} else {
-				retries = 0;  // Reset retry count after a failure
-				// Optionally, handle the failure (e.g., by logging it)
-				HAL_GPIO_WritePin(GPIOD, LED_RD_Pin, GPIO_PIN_SET);
-			}
-		}
-		else
-		{
-		}
-	}
-		/*else
-		{
-			CAN_TX(hcan, TxHeader, TxData);
-		}
-		*/
-		if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) return;
-}
+    CAN_TxHeaderTypeDef header = {0};       // CAN Header wird lokal erstellt
+    uint32_t mailbox;                       // Mailbox, die HAL zum Senden benutzt
 
-	// receive CAN message
-void CAN_TX_IVT(CAN_HandleTypeDef hcan, CAN_TxHeaderTypeDef TxHeader, uint8_t* TxData)
-{
-	uint32_t TxMailbox;
-	uint32_t freeMailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
-	if(freeMailboxes > 0)
-	{
-		if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-		{
-		    static uint8_t retries = 0;
-		    if (retries < 5) {  // Maximum retries
-		    	retries++;
-			    CAN_TX_IVT(hcan, TxHeader, TxData);
-		    } else {
-		        retries = 0;  // Reset retry count after a failure
-		        // Optionally, handle the failure (e.g., by logging it)
-		        HAL_GPIO_WritePin(GPIOD, LED_RD_Pin, GPIO_PIN_SET);
-			}
-		}
-		else
-		{
-		}
-	}
-	else
-	{
-		CAN_TX_IVT(hcan, TxHeader, TxData);
-	}
-}
+    if (HAL_CAN_GetTxMailboxesFreeLevel(hcan) == 0)
+        return;                             // Wenn keine Mailbox frei ist, nicht blockieren
 
-void CAN_RX(CAN_HandleTypeDef hcan)
-{
-	CAN_RxHeaderTypeDef RxHeader;
-	uint8_t RxData[8];
-	if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-	{
-	}
-	if( RxHeader.StdId == 0x500)		// Buttons on DIC
-		{
-			if((RxData[0]& 1) == 1)				// close SC
-			{
-				ts_on = 1;
-				switch_on = 1;
-			}
+    header.StdId = id;                      // CAN Standard-ID setzen
+    header.IDE = CAN_ID_STD;                // Standard-ID verwenden, keine Extended-ID
+    header.RTR = CAN_RTR_DATA;              // Normale Datennachricht
+    header.DLC = 8;                         // Immer 8 Datenbytes senden
 
-			charging = (RxData[0]>>7);
-		}
+    if (HAL_CAN_AddTxMessage(hcan, &header, data, &mailbox) != HAL_OK)
+    {
+        HAL_GPIO_WritePin(GPIOD, LED_RD_Pin, GPIO_PIN_RESET); // Fehler-LED einschalten
+    }
 }
 
 void IVT_MODE(uint8_t mode)
 {
-	uint8_t data[8];
+    uint8_t data[8];                        // Datenarray für IVT Befehl
 
-	data[0] = 0x34;
-	data[1] = mode;
-	data[2] = 0x01;
-	data[3] = 0x00;
-	data[4] = 0x00;
-	data[5] = 0x00;
-	data[6] = 0x00;
-	data[7] = 0x00;
+    data[0] = 0x34;                         // IVT Befehl für Modus setzen
+    data[1] = mode;                         // STOP oder RUN
+    data[2] = 0x01;                         // IVT Parameter
+    data[3] = 0x00;
+    data[4] = 0x00;
+    data[5] = 0x00;
+    data[6] = 0x00;
+    data[7] = 0x00;
 
-	CAN_TX_IVT(hcan2,IVT_MSG_COMMAND,data);
+    CAN_TX(&hcan2, 0x411, data);            // Befehl an IVT über CAN2 senden
 }
 
 void IVT_ACTIVATE(uint8_t channel)
 {
-	uint8_t data [8];
+    uint8_t data[8];                        // Datenarray für IVT Aktivierung
 
-	data[0] = 0x20 | channel;
-	data[1] = 0x02;
-	data[2] = 0x00;
-	data[3] = 0x14;
-	data[4] = 0x00;
-	data[5] = 0x00;
-	data[6] = 0x00;
-	data[7] = 0x00;
+    data[0] = 0x20 | channel;               // Gewünschten IVT Kanal aktivieren
+    data[1] = 0x02;                         // IVT Konfigurationswert
+    data[2] = 0x00;
+    data[3] = 0x14;                         // Zykluszeit/Parameter für IVT
+    data[4] = 0x00;
+    data[5] = 0x00;
+    data[6] = 0x00;
+    data[7] = 0x00;
 
-	CAN_TX_IVT(hcan2,IVT_MSG_COMMAND,data);
+    CAN_TX(&hcan2, 0x411, data);            // Aktivierungsbefehl an IVT senden
 }
 
-void IVT_init()
+void IVT_init(void)
 {
-	static uint32_t t = 0;
-	static uint8_t state = 0;
+    static uint32_t t = 0;                  // Speichert die letzte Zeit
+    static uint8_t state = 0;               // Speichert aktuellen Initialisierungsschritt
 
-	switch(state)
-	{
-		case 0:
-	        t = HAL_GetTick();   // aktuelle Zeit merken
-	        state = 1;
-	        break;
+    switch (state)
+    {
+        case 0:
+            t = HAL_GetTick();             // Startzeit merken
+            state = 1;                     // Zum nächsten Schritt gehen
+            break;
 
-	     case 1:
-	        if (HAL_GetTick() - t >= 1000) {
-	            IVT_MODE(STOP);
-	            t = HAL_GetTick();
-	            state = 2;
-	        }
-	        break;
+        case 1:
+            if (HAL_GetTick() - t >= 1000) // 1 Sekunde warten
+            {
+                IVT_MODE(STOP);            // IVT zuerst stoppen
+                t = HAL_GetTick();         // Zeit neu merken
+                state = 2;
+            }
+            break;
 
-	     case 2:
-	    	 if (HAL_GetTick() - t >= 100) {
-	    		 IVT_ACTIVATE(IVT_MSG_RESULT_As);
-	    		 t = HAL_GetTick();
-	    		 state = 3;
-	         }
-	         break;
+        case 2:
+            if (HAL_GetTick() - t >= 100)  // 100 ms warten
+            {
+                IVT_ACTIVATE(IVT_MSG_RESULT_As); // Kapazitätsmessung aktivieren
+                t = HAL_GetTick();
+                state = 3;
+            }
+            break;
 
-	     case 3:
-	    	 if (HAL_GetTick() - t >= 100) {
-	    		 IVT_ACTIVATE(IVT_MSG_RESULT_W);
-	    		 t = HAL_GetTick();
-	    		 state = 4;
-	         }
-	         break;
+        case 3:
+            if (HAL_GetTick() - t >= 100)  // 100 ms warten
+            {
+                IVT_ACTIVATE(IVT_MSG_RESULT_W);  // Leistungsmessung aktivieren
+                t = HAL_GetTick();
+                state = 4;
+            }
+            break;
 
-	     case 4:
-	    	 if (HAL_GetTick() - t >= 100) {
-	    		 IVT_MODE(RUN);
-	    		 state = 5;   // fertig
-	    	 }
-	         break;
+        case 4:
+            if (HAL_GetTick() - t >= 100)  // 100 ms warten
+            {
+                IVT_MODE(RUN);             // IVT wieder starten
+                state = 5;                 // Initialisierung fertig
+            }
+            break;
 
-	     case 5:
-	            // done
-	         break;
-	}
+        case 5:
+            break;                         // Fertig, nichts mehr machen
+    }
 }
 
 void CAN_Send_All_LTC_Temps_Frame(uint8_t frame)
 {
-    uint8_t data[8];
+    uint8_t data[8];                        // 8 Byte CAN Daten
 
     if (frame == 0)
     {
         for (uint8_t i = 0; i < 4; i++)
         {
-            data[2*i]     = (uint8_t)(ltcTemps_c10[i] & 0xFF);
-            data[2*i + 1] = (uint8_t)(ltcTemps_c10[i] >> 8);
+            data[2 * i]     = (uint8_t)(ltcTemps_c10[i] & 0xFF);      // Low Byte
+            data[2 * i + 1] = (uint8_t)(ltcTemps_c10[i] >> 8);        // High Byte
         }
-        CAN_TX(hcan1, AMS4_header, data);
+
+        CAN_TX(&hcan1, 0x220, data);        // Erste 4 LTC Temperaturen senden
     }
     else if (frame == 1)
     {
         for (uint8_t i = 0; i < 4; i++)
         {
-            data[2*i]     = (uint8_t)(ltcTemps_c10[i + 4] & 0xFF);
-            data[2*i + 1] = (uint8_t)(ltcTemps_c10[i + 4] >> 8);
+            data[2 * i]     = (uint8_t)(ltcTemps_c10[i + 4] & 0xFF);  // Low Byte
+            data[2 * i + 1] = (uint8_t)(ltcTemps_c10[i + 4] >> 8);    // High Byte
         }
-        CAN_TX(hcan1, AMS5_header, data);
+
+        CAN_TX(&hcan1, 0x221, data);        // Zweite 4 LTC Temperaturen senden
     }
     else if (frame == 2)
     {
         for (uint8_t i = 0; i < 4; i++)
         {
-            data[2*i]     = (uint8_t)(ltcTemps_c10[i + 8] & 0xFF);
-            data[2*i + 1] = (uint8_t)(ltcTemps_c10[i + 8] >> 8);
+            data[2 * i]     = (uint8_t)(ltcTemps_c10[i + 8] & 0xFF);  // Low Byte
+            data[2 * i + 1] = (uint8_t)(ltcTemps_c10[i + 8] >> 8);    // High Byte
         }
-        CAN_TX(hcan1, AMS6_header, data);
+
+        CAN_TX(&hcan1, 0x222, data);        // Dritte 4 LTC Temperaturen senden
     }
 }
 
+
 void can_put_data()
 {
-	AMS0_databytes[0] = ts_volt_can;
-	AMS0_databytes[1] = (ts_volt_can >> 8);
-	AMS0_databytes[2] = current;
-	AMS0_databytes[3] = (current >> 8);
-	AMS0_databytes[4] = imdStatValue;
-	AMS0_databytes[5] = (imdStatValue>>8);
-	AMS0_databytes[6] =  0  | (ts_ready << 3) | (precharge << 4) | (IMD_ERROR << 6) | (AMS_ERROR << 7);
-	AMS0_databytes[7] = ams_status;
+    AMS0_databytes[0] = ts_volt_can & 0xFF; 	// Spannung Low Byte
+    AMS0_databytes[1] = ts_volt_can >> 8;  		// Spannung High Byte
+    AMS0_databytes[2] = current & 0xFF;   		// Strom Low Byte
+    AMS0_databytes[3] = current >> 8;     		// Strom High Byte
+    AMS0_databytes[4] = imdStatValue & 0xFF; 	// IMD Low Byte
+    AMS0_databytes[5] = imdStatValue >> 8;   	// IMD High Byte
+	AMS0_databytes[6] =  0  | (ts_ready << 3) | (precharge << 4) | (IMD_ERROR << 6) | (AMS_ERROR << 7);	 // Statusbits in ein Byte packen
+	AMS0_databytes[7] = ams_status;				// Laufender Statuszähler
 }
 
-void CAN_RX_IVT(CAN_HandleTypeDef hcan)
+void CAN_50(uint8_t precharge_data[])
 {
-	CAN_RxHeaderTypeDef RxHeader;
-	uint8_t RxData[8];
-	if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-	{
+    CAN_TX(&hcan1, 0x200, precharge_data);  // AMS0 Nachricht mit 50 Hz senden
 
-	}
-	current_data = 0;
+    ams_status++;                           // Statuszähler erhöhen
 
-		if(RxHeader.StdId == 0x521)		// Current mA
-		{
-			current_data = RxData[5] | (RxData[4] << (1*8)) | (RxData[3] << (2*8)) | (RxData[2] << (3*8));
-
-			if(RxData[2] >> 7 == 0)
-			{
-				//current = (current_data << 1 >> 1)/100;
-				current = current_data/100;
-			}
-			else
-			{
-				current = ~current_data/100;
-			}
-			//current = current_data/100;
-
-			ivt_error_time = HAL_GetTick();
-
-			dc_current[4] = RxData[2];
-			dc_current[5] = RxData[3];
-			dc_current[6] = RxData[4];
-			dc_current[7] = RxData[5];
-
-		}
-		if(RxHeader.StdId == 0x527)		// Capacity As
-		{
-			capacity_data = RxData[5] | (RxData[4] << (1*8)); //| (RxData[3] << (2*8)) | (RxData[2] << (3*8));
-
-			AMS0_databytes[4] = RxData[4];
-			AMS0_databytes[5] = RxData[5];
-		}
-}
-
-void CAN_50(uint8_t precharge_data[])		// CAN Messages transmitted with 50 Hz
-{
-
-	CAN_TX(hcan1, AMS0_header, precharge_data);
-
-
-	ams_status++;
-
-	if(ams_status == 255)
-	{
-		ams_status = 0;
-	}
+    if (ams_status == 255)
+    {
+        ams_status = 0;                     // Zähler zurücksetzen
+    }
 }
 
 void CAN_10(uint8_t bms_data[])
 {
-    static uint8_t step = 0;
+    static uint8_t step = 0;                // Merkt, welche Nachricht als nächstes kommt
 
-    switch(step)
+    if (step == 0)
     {
-        case 0:
-            CAN_TX(hcan1, AMS1_header, bms_data);
-            CAN_TX(hcan1, AMS2_header, dc_current);
-            break;
-
-        case 1:
-            CAN_Send_All_LTC_Temps_Frame(0);   // 0x220
-            break;
-
-        case 2:
-            CAN_Send_All_LTC_Temps_Frame(1);   // 0x221
-            break;
-
-        case 3:
-            CAN_Send_All_LTC_Temps_Frame(2);   // 0x222
-            break;
+        CAN_TX(&hcan1, 0x201, bms_data);    // AMS1 senden
+        CAN_TX(&hcan1, 0x210, dc_current);  // Stromdaten senden
+    }
+    else if (step == 1)
+    {
+        CAN_Send_All_LTC_Temps_Frame(0);    // Temperaturframe 0 senden
+    }
+    else if (step == 2)
+    {
+        CAN_Send_All_LTC_Temps_Frame(1);    // Temperaturframe 1 senden
+    }
+    else if (step == 3)
+    {
+        CAN_Send_All_LTC_Temps_Frame(2);    // Temperaturframe 2 senden
     }
 
-    step++;
+    step++;                                 // Zum nächsten Schritt gehen
+
     if (step >= 4)
     {
-        step = 0;
+        step = 0;                           // Wieder von vorne anfangen
     }
 }
 
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    CAN_RxHeaderTypeDef RxHeader;   // CAN Header (ID usw.)
+    uint8_t RxData[8];             // Empfangene Datenbytes
+
+    // Nachricht aus FIFO lesen
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+        return;
+
+    // Nachricht von CAN1
+    if (hcan->Instance == CAN1)
+    {
+        // ID 0x500 = Buttons / DIC
+        if (RxHeader.StdId == 0x500)
+        {
+            // Bit 0 = Einschalten
+            if ((RxData[0] & 0x01) == 1)
+            {
+                ts_on = 1;
+                switch_on = 1;
+            }
+
+            // Bit 7 = Laden aktiv
+            charging = (RxData[0] >> 7) & 0x01;
+        }
+    }
+
+    // Nachricht von CAN2
+    if (hcan->Instance == CAN2)
+    {
+        // ID 0x521 = Strom vom IVT
+        if (RxHeader.StdId == 0x521)
+        {
+            // 4 Bytes zu Stromwert zusammensetzen
+            int32_t raw_current =
+                ((int32_t)RxData[2] << 24) |
+                ((int32_t)RxData[3] << 16) |
+                ((int32_t)RxData[4] << 8)  |
+                ((int32_t)RxData[5]);
+
+            current = raw_current / 100;   // Strom umrechnen
+            ivt_error_time = HAL_GetTick(); // Letzte IVT Nachricht merken
+
+            // Rohdaten speichern
+            dc_current[4] = RxData[2];
+            dc_current[5] = RxData[3];
+            dc_current[6] = RxData[4];
+            dc_current[7] = RxData[5];
+        }
+
+        // ID 0x527 = Kapazität vom IVT
+        if (RxHeader.StdId == 0x527)
+        {
+            // 2 Bytes zu Wert zusammensetzen
+            capacity_data = ((uint16_t)RxData[4] << 8) | RxData[5];
+
+            // Daten speichern
+            AMS0_databytes[4] = RxData[4];
+            AMS0_databytes[5] = RxData[5];
+        }
+    }
+}
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan1;
@@ -410,33 +369,6 @@ void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-
-  //CAN_FilterTypeDef canfilterconfig_DIC;
-
-
-  /*  Filter über FilterAction aktivieren
-  	  Filterbänke zuweisen und auswählen
-  	  Welches FIFO (FIFO0 oder FIFI1)
-  	  FilterIdHigh, welche ID-Bits verglichen werden sollen
-  	  FilterMaskIdHigh, Vergleich bestimmter Bits zwischen dem ID-Register und der eingehenden ID zu ermöglichen
-  	  FilterMode, Maskenmodus (ausgewählte Bits vergleichen) oder Listenmodus (vollständige IDs vergleichen)
-  	  Filter Scale, Verwendung eines 32-Bit-Registers oder zweier 16-Bit-Register
-
-  canfilterconfig_DIC.FilterActivation = CAN_FILTER_ENABLE;
-
-
-  canfilterconfig_DIC.FilterBank = 1;  // which filter bank to use from the assigned ones
-  canfilterconfig_DIC.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  canfilterconfig_DIC.FilterIdHigh = 0x0000;
-  canfilterconfig_DIC.FilterIdLow = 0x0000;
-  canfilterconfig_DIC.FilterMaskIdHigh = 0x0000;
-  canfilterconfig_DIC.FilterMaskIdLow = 0x0000;
-  canfilterconfig_DIC.FilterMode = CAN_FILTERMODE_IDMASK;	//Mask or List
-  canfilterconfig_DIC.FilterScale = CAN_FILTERSCALE_32BIT;
-  canfilterconfig_DIC.SlaveStartFilterBank = 20;  // how many filters to assign to the CAN1 (master can)
-
-  HAL_CAN_ConfigFilter(&hcan1, &canfilterconfig_DIC);
-*/
 
   CAN_FilterTypeDef canfilterconfig1;
 
