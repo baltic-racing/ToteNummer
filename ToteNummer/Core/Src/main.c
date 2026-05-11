@@ -22,6 +22,7 @@
 #include "can.h"
 #include "spi.h"
 #include "tim.h"
+#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -106,36 +107,29 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-  HAL_Init();		 // Initialisiert HAL-Library, Flash-Interface und SysTick
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-
-  SystemClock_Config();		 // Systemtakt konfigurieren
+  SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();									// GPIOs initialisieren
-  HAL_NVIC_SetPriority(OTG_FS_IRQn, 1, 0);			// USB-Interrupt priorisieren und aktivieren
-  HAL_NVIC_EnableIRQ(OTG_FS_IRQn);					// USB-Interrupt priorisieren und aktivieren
-  MX_USB_DEVICE_Init();								// USB-Gerät initialisieren
-
-  // Timer, ADC, CAN und SPI initialisieren
+  MX_GPIO_Init();
   MX_TIM9_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_CAN1_Init();
   MX_CAN2_Init();
+  MX_USB_DEVICE_Init();
   MX_TIM2_Init();
   MX_SPI3_Init();
-
   /* USER CODE BEGIN 2 */
   // LEDs ausschalten
   // Hinweis: Laut Schaltung bedeutet GPIO_PIN_SET = Spannung hoch = LED aus
@@ -177,13 +171,14 @@ int main(void)
   {
 	  BMS();	// Hauptfunktion des Battery Management Systems zyklisch ausführen
 
+  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
   }
-}
+
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -244,8 +239,8 @@ void Error_Handler(void)
 	  //HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
 	  //HAL_Delay(200);
   }
-}
 
+}
   /* USER CODE END Error_Handler_Debug */
 
 
