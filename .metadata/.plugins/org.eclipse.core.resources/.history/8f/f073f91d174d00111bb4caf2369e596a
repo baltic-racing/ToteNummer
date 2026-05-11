@@ -85,31 +85,31 @@ void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
     //uint8_t payload_len = shit_count;	// Message_ID + Message_Value
     uint8_t payload_len = shit_count + 1;   // Message_ID + Message_Value
 
-    // CMD_STX + CMD_Mode + Protocol_Length + Device_Signature + Message_ID (Payload) + Message_Value (Checksum)
+    // CMD_STX + CMD_Mode + Protocol_Length + SDevice_ignature + Message_ID (Payload) + Message_Value (Checksum)
     if ((5 + payload_len) > sizeof(packet))
         return;
 
     uint8_t idx = 0;
     uint8_t chk = 0;
 
-    packet[idx++] = CMD_STX;				// CMD_STX
-    packet[idx++] = CMD_MODE;				// CMD_Mode
-    packet[idx++] = payload_len;			// Protocol_Length
-    packet[idx++] = DEVICE_SIGNATURE;		// Device_Signature
+    packet[idx++] = CMD_STX;
+    packet[idx++] = CMD_MODE;
+    packet[idx++] = payload_len;
+    packet[idx++] = DEVICE_SIGNATURE;
 
     packet[idx++] = type;                   // Message_ID
 
     for (uint8_t i = 0; i < shit_count; i++)
     {
-        packet[idx++] = data_shit[i];		// Message_Value (Payload)
+        packet[idx++] = data_shit[i];		// Message_Value
     }
 
     for (uint8_t i = 0; i < idx; i++)
     {
-        chk ^= packet[i];					// Checksum calculation
+        chk ^= packet[i];
     }
 
-    packet[idx++] = chk;					// Checksum
+    packet[idx++] = chk;
 
     CDC_SendBlocking(packet, idx, 3);
 }
