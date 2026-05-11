@@ -30,20 +30,20 @@ extern int16_t ltcTemps_c10[NUM_STACK];
 
 void USB_Send_TS_Voltage(void)
 {
-    uint8_t payload[3];
-    payload[0] = 0x21;
-    payload[1] = (uint8_t)(ts_volt_can >> 8);
-    payload[2] = (uint8_t)(ts_volt_can & 0xFF);
+    uint8_t payload[2];
+
+    payload[0] = (uint8_t)(ts_volt_can >> 8);
+    payload[1] = (uint8_t)(ts_volt_can & 0xFF);
 
     USB_control("ID_TS_Voltage", payload, sizeof(payload));
 }
 
 void USB_Send_TS_Current(void)
 {
-    uint8_t payload[3];
-    payload[0] = 0x22;
-    payload[1] = (uint8_t)(current >> 8);
-    payload[2] = (uint8_t)(current & 0xFF);
+    uint8_t payload[2];
+
+    payload[0] = (uint8_t)(current >> 8);
+    payload[1] = (uint8_t)(current & 0xFF);
 
     USB_control("ID_TS_Current", payload, sizeof(payload));
 }
@@ -52,10 +52,10 @@ void USB_Send_CellTempMin(void)
 {
     uint16_t temp_min = (uint16_t)(AMS1_databytes[4] | (AMS1_databytes[5] << 8));
 
-    uint8_t payload[3];
-    payload[0] = 0x28;
-    payload[1] = (uint8_t)(temp_min >> 8);
-    payload[2] = (uint8_t)(temp_min & 0xFF);
+    uint8_t payload[2];
+
+    payload[0] = (uint8_t)(temp_min >> 8);
+    payload[1] = (uint8_t)(temp_min & 0xFF);
 
     USB_control("ID_TS_Cell_Temprearure_min", payload, sizeof(payload));
 }
@@ -70,7 +70,7 @@ void USB_Send_StackDetail(uint8_t stack)
         return;
     }
 
-    payload[idx++] = stack;
+    payload[idx++] = stack;   // Message_Value: Stack-Nummer
 
     for (uint8_t i = 0; i < 12; i++)
     {
@@ -86,7 +86,7 @@ void USB_Send_StackDetail(uint8_t stack)
         payload[idx++] = (uint8_t)(t & 0xFF);
     }
 
-    USB_transmit(0x40, payload, idx);
+    USB_transmit(0x40, payload, idx);   // 0x40 = Message_ID
 }
 
 void USB_Send_LTC_AllStacks(void)
@@ -101,5 +101,5 @@ void USB_Send_LTC_AllStacks(void)
         payload[idx++] = (uint8_t)(t & 0xFF);
     }
 
-    USB_transmit(0x90, payload, idx);
+    USB_transmit(0x90, payload, idx);   // 0x90 = Message_ID
 }

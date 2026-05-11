@@ -2,7 +2,7 @@
  * usb_control.c
  *
  *  Created on: Dec 5, 2025
- *      Author: Lilly
+ *      Author: Lilly & Finja
  */
 #include <main.h>
 #include "stdlib.h"
@@ -15,15 +15,16 @@
 #include <string.h>
 #include "usb_control.h"
 
-#include <string.h>   // strcmp
+#include <string.h>
 #include <stdint.h>
 
 extern volatile uint8_t BMS_state;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 #define CMD_STX 0x02
+#define CMD_MODE             0x00
+#define DEVICE_SIGNATURE     0xA1
 
-//static volatile uint16_t rxWrite = 0, rxRead = 0;
 static volatile uint16_t rxWrite = 0;
 static volatile uint16_t rxRead  = 0;
 
@@ -79,25 +80,28 @@ void USB_control(const char *broadcaster, uint8_t *data_shit, uint8_t data_size_
 	USB_transmit(type, data_shit, data_size_bytes);
 }
 
-#define CMD_STX 0x02
-
 void USB_transmit(uint8_t type, const uint8_t *data_shit, uint8_t shit_count)
 {
-    uint8_t payload_len = shit_count;
+    //uint8_t payload_len = shit_count;	// Message_ID + Message_Value
+    uint8_t payload_len = shit_count + 1;   // Message_ID + Message_Value
 
-    if (payload_len > 60)
+    // CMD_STX + CMD_Mode + Protocol_Length + SDevice_ignature + Message_ID (Payload) + Message_Value (Checksum)
+    if ((5 + payload_len) > sizeof(packet))
         return;
 
     uint8_t idx = 0;
     uint8_t chk = 0;
 
     packet[idx++] = CMD_STX;
-    packet[idx++] = type;
+    packet[idx++] = CMD_MODE;
     packet[idx++] = payload_len;
+    packet[idx++] = DEVICE_SIGNATURE;
 
-    for (uint8_t i = 0; i < payload_len; i++)
+    packet[idx++] = type;                   // Message_ID
+
+    for (uint8_t i = 0; i < shit_count; i++)
     {
-        packet[idx++] = data_shit[i];
+        packet[idx++] = data_shit[i];		// Message_Value
     }
 
     for (uint8_t i = 0; i < idx; i++)

@@ -26,28 +26,26 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "bms.h"
+#include "bms.h"          // Funktionen für das Battery Management System
 #include "stdio.h"
-#include "usb_device.h"
-#include "usb_control.h"
-#include "usbd_cdc_if.h"
+#include "usb_device.h"   // USB-Geräteinitialisierung
+#include "usb_control.h"  // Eigene USB-Kommunikationsfunktionen
+#include "usbd_cdc_if.h"  // USB CDC Interface
 #include "usbd_def.h"
 #include <string.h>
 #include <stdint.h>
 
-/*volatile uint8_t usb_pending = 0;
-uint8_t usb_pending_buf[60];
-uint8_t usb_pending_len = 0;
-
-extern uint8_t TxHeader;
-extern uint8_t hcan;
-*/
-
-void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData){
-	if(*can_exe_flag == 0){ // can_exe_flag = 0 => 0= Can wurde noch nicht gestartet, 1 => Can wurde bereits gestartet
+void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxData)
+{
+	if (*can_exe_flag == 0)
+	{
+		// CAN-Bus starten
 		HAL_CAN_Start(hcan);
+
+		// Interrupt aktivieren, sobald eine CAN-Nachricht in FIFO0 ankommt
 		HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 
+		// Flag erhöhen, damit CAN nicht erneut gestartet wird
 		(*can_exe_flag)++;
 	}
 }
@@ -71,13 +69,15 @@ void CAN_transceive(CAN_HandleTypeDef *hcan, uint8_t *can_exe_flag, uint8_t *TxD
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-//uint8_t LED_State = 0;
+// CAN-Sendedaten, vermutlich in anderer Datei definiert
 extern uint8_t TxData[8];
 
-extern volatile uint8_t  usb_rx_ready;
-extern volatile uint32_t usb_rx_len;
-extern uint8_t usb_rx_data[1024];
+// Variablen für USB-Empfang
+extern volatile uint8_t  usb_rx_ready;      // Flag: neue USB-Daten empfangen
+extern volatile uint32_t usb_rx_len;        // Länge der empfangenen USB-Daten
+extern uint8_t usb_rx_data[1024];           // Empfangspuffer für USB-Daten
 
+// USB Device Handle
 extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END PV */
 
@@ -106,46 +106,51 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+  HAL_Init();		 // Initialisiert HAL-Library, Flash-Interface und SysTick
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-  SystemClock_Config();
+
+  SystemClock_Config();		 // Systemtakt konfigurieren
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  HAL_NVIC_SetPriority(OTG_FS_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
-  MX_USB_DEVICE_Init();
+  MX_GPIO_Init();									// GPIOs initialisieren
+  HAL_NVIC_SetPriority(OTG_FS_IRQn, 1, 0);			// USB-Interrupt priorisieren und aktivieren
+  HAL_NVIC_EnableIRQ(OTG_FS_IRQn);					// USB-Interrupt priorisieren und aktivieren
+  MX_USB_DEVICE_Init();								// USB-Gerät initialisieren
 
+  // Timer, ADC, CAN und SPI initialisieren
   MX_TIM9_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_CAN1_Init();
   MX_CAN2_Init();
-
   MX_TIM2_Init();
   MX_SPI3_Init();
 
   /* USER CODE BEGIN 2 */
+  // LEDs ausschalten
+  // Hinweis: Laut Schaltung bedeutet GPIO_PIN_SET = Spannung hoch = LED aus
   HAL_GPIO_WritePin(LED_GN_GPIO_Port, LED_GN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_YW_GPIO_Port, LED_YW_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_RD_GPIO_Port, LED_RD_Pin, GPIO_PIN_SET);
-    //set hebt die Spannung an (+), led aus, in schematik anschauen
-    //reset ist (-), led an
+  //set hebt die Spannung an (+), led aus, in schematik anschauen
+  //reset ist (-), led an
 
-  HAL_TIM_Base_Start_IT(&htim2);		//start Timer
-  HAL_CAN_Start(&hcan1);
+  HAL_TIM_Base_Start_IT(&htim2);		// Timer 2 mit Interrupt starten
+  HAL_CAN_Start(&hcan1);				// CAN1 und CAN2 starten
   HAL_CAN_Start(&hcan2);
-  BMS_init();
+  BMS_init();							// Battery Management System initialisieren
 
+  // CAN-Empfangsinterrupt für CAN1 aktivieren
   if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
     {
         Error_Handler();
@@ -156,17 +161,22 @@ int main(void)
           Error_Handler();
       }
 
+ // Input Capture für Timer 9 starten
+ // Kanal 2 ist der Hauptkanal
  HAL_TIM_IC_Start_IT(&htim9, TIM_CHANNEL_2);   // main channel
+ // Kanal 1 ist der indirekte Kanal
  HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
 
-  IVT_init();
+ // IVT-Modul initialisieren
+ IVT_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  BMS();
+	  BMS();	// Hauptfunktion des Battery Management Systems zyklisch ausführen
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -230,6 +240,7 @@ void Error_Handler(void)
   while (1)
   {
 	  //erstmal auskommentieren, könnte falsch sein ------------------------------------------------------------------------------------------------------------------------
+	  // Optional: rote LED blinken lassen, um Fehler anzuzeigen
 	  //HAL_GPIO_TogglePin(LED_RD_GPIO_Port, LED_RD_Pin);
 	  //HAL_Delay(200);
   }
