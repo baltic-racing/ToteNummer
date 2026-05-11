@@ -10,6 +10,6 @@
 ../Core/Src/bms.c:359:6:convertTemperature	24	static
 ../Core/Src/bms.c:424:6:checkPEC	16	static
 ../Core/Src/bms.c:437:6:checkIMD	16	static
-../Core/Src/bms.c:475:6:send_usb_measurements	16	static
-../Core/Src/bms.c:529:9:getbalancingKP	24	static
-../Core/Src/bms.c:549:6:LTCTemperature	112	static
+../Core/Src/bms.c:471:6:send_usb_measurements	16	static
+../Core/Src/bms.c:525:9:getbalancingKP	24	static
+../Core/Src/bms.c:545:6:LTCTemperature	112	static

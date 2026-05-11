@@ -41,6 +41,7 @@
 #define switch_time 100
 
 #define MIN_IMD_RES 400 // minimaler ISOwiderstand in kOhm
+#define imd_detect_time 200    // 100-250 ms empfohlen
 
 #define TSON_RESET_TIME 300
 

@@ -9,7 +9,7 @@
 ../Core/Src/bms.c:336:6:sortTemperature	5
 ../Core/Src/bms.c:359:6:convertTemperature	17
 ../Core/Src/bms.c:424:6:checkPEC	3
-../Core/Src/bms.c:437:6:checkIMD	6
-../Core/Src/bms.c:475:6:send_usb_measurements	9
-../Core/Src/bms.c:529:9:getbalancingKP	3
-../Core/Src/bms.c:549:6:LTCTemperature	5
+../Core/Src/bms.c:437:6:checkIMD	4
+../Core/Src/bms.c:471:6:send_usb_measurements	9
+../Core/Src/bms.c:525:9:getbalancingKP	3
+../Core/Src/bms.c:545:6:LTCTemperature	5

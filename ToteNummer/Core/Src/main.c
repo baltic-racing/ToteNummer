@@ -162,13 +162,14 @@ int main(void)
  HAL_TIM_IC_Start(&htim9, TIM_CHANNEL_1);   // indirect channel
 
  // IVT-Modul initialisieren
- IVT_init();
+ //IVT_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  IVT_init();
 	  BMS();	// Hauptfunktion des Battery Management Systems zyklisch ausführen
 
   }
