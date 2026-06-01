@@ -232,6 +232,14 @@ void BMS()		// Battery Management System function for main loop.
 	send_usb_measurements();
 }
 
+static void BMS_WaitMs(uint32_t ms)
+{
+    uint32_t start = HAL_GetTick();
+    while ((HAL_GetTick() - start) < ms)
+    {
+    }
+}
+
 void convertVoltage()		//convert and sort Voltages
 {
 	ts_volt_can = 0;
@@ -304,58 +312,8 @@ uint16_t calculateTemperature(uint16_t voltageCode, uint16_t referenceCode)		//c
 	else return 0xFFFF;
 }
 
-void CAN_Recovery_Task()
-{
-    static uint32_t last_check = 0;
-    if (HAL_GetTick() - last_check < 1000) return;
-    last_check = HAL_GetTick();
-
-    // CAN1 Recovery
-    if (hcan1.Instance->ESR & CAN_ESR_BOFF)
-    {
-        HAL_CAN_Stop(&hcan1);
-        HAL_CAN_Start(&hcan1);
-        HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
-    }
-
-    // CAN2 Recovery
-    if (hcan2.Instance->ESR & CAN_ESR_BOFF)
-    {
-        HAL_CAN_Stop(&hcan2);
-        HAL_CAN_Start(&hcan2);
-        HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
-    }
-}
-
 void CAN_interrupt()
 {
-	CAN_Recovery_Task();
-    if (HAL_GetTick() >= last20 + 20)
-    {
-    	if (!(hcan1.Instance->ESR & CAN_ESR_BOFF))
-    	{
-    		CAN_50(AMS0_databytes);
-    	}
-
-        last20 = HAL_GetTick();
-    }
-
-    if (HAL_GetTick() >= last100 + 100)
-    {
-    	if (!(hcan1.Instance->ESR & CAN_ESR_BOFF))
-			{
-    		CAN_10(AMS1_databytes);
-			}
-
-        HAL_GPIO_TogglePin(GPIOA, WDI_Pin);
-        HAL_GPIO_TogglePin(GPIOC, LED_GN_Pin);
-        last100 = HAL_GetTick();
-    }
-}
-/*
-void CAN_interrupt()
-{
-	CAN_Recovery_Task();
     if (HAL_GetTick() >= last20 + 20)
     {
         CAN_50(AMS0_databytes);
@@ -371,7 +329,7 @@ void CAN_interrupt()
         last100 = HAL_GetTick();
     }
 }
-*/
+
 uint16_t find_me = 0;
 uint8_t test2 = 0;
 
