@@ -35,18 +35,23 @@
 
 #define error_max 5
 
-#define volt_detect_time 700	//nicht regelkonform
+#define volt_detect_time 700				//nicht regelkonform
 #define temp_detect_time 1200
 #define precharge_check_time 3000
 #define switch_time 100
 
-#define MIN_IMD_RES 400 // minimaler ISOwiderstand in kOhm
-#define imd_detect_time 1500    // 100-250 ms empfohlen
+#define MIN_IMD_RES 200 // minimaler ISOwiderstand in kOhm
+#define imd_detect_time 800 //Zeit in ms, die der IMD-Widerstand unter dem Grenzwert sein muss, bevor ein Fehler erkannt wird
 
 #define TSON_RESET_TIME 300
 
 #define NTC_BETA 3892
 
+#define IMD_FREQ_NORMAL       10
+#define IMD_FREQ_UNDERVOLT    20
+#define IMD_FREQ_SST          30
+#define IMD_FREQ_DEVICE_ERR   40
+#define IMD_FREQ_EARTH_ERR    50
 
 
 #endif /* SRC_DEFINE_H_ */

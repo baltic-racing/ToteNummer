@@ -69,6 +69,8 @@ uint64_t last500 = 0;
 uint32_t volt_error_time = 0;
 uint32_t temp_error_time = 0;
 uint32_t pec_error_time = 0;
+float imd_frequency = 0.0f;
+static uint32_t imd_error_time = 0;
 extern uint32_t ivt_error_time;
 
 uint8_t temp_error = 0;
@@ -102,6 +104,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    }
 }
 
+#define IMD_TIMER_CLOCK_HZ 1000000.0f   // an euren Timer anpassen!
+#define FREQ_NEAR(f, target) ((f) > ((target) - 2.0f) && (f) < ((target) + 2.0f))
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
+    {
+        ICValue = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+
+        if(ICValue != 0)
+        {
+            Duty = 100.0f -
+                (HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1) * 100.0f) / ICValue;
+
+            imd_frequency = IMD_TIMER_CLOCK_HZ / (float)ICValue;
+        }
+    }
+}
+/*
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)  // If the interrupt is triggered by channel 1
@@ -112,6 +133,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 			Duty = 100 - (HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1) * 100.0)/ICValue; // calculate the Duty Cycle
 		}
 	}
+
 	if(Duty < 10) {
 		Duty = 10;
 	}
@@ -120,8 +142,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	}
 
 	imdStatValue = (90.0*1200)/(Duty-5.0) - 1200;		//R_F = (90% * 1200kOhm)/(duty[%] - 5%) - 1200kOhm
-}
 
+}
+*/
 void BMS_init()
 {
 	LTC6811_initialize();
@@ -216,7 +239,7 @@ void BMS()		// Battery Management System function for main loop.
 	else
 		selTemp = 0;
 
-	if(AMS_ERROR == 1 || IMD_ERROR == 1 )//|| PEC_ERROR == 1)
+	if(AMS_ERROR == 1 )//|| IMD_ERROR == 1 )|| PEC_ERROR == 1)
 	{
 		sc_state = 1;
 		ts_on = 0;
@@ -478,12 +501,68 @@ void checkPEC(uint8_t pec)
 
 void checkIMD(void)
 {
-	uint32_t imd_error_time = 0;
+    IMD_ERROR = 0;
 
+    if (FREQ_NEAR(imd_frequency, IMD_FREQ_NORMAL))
+    {
+        if (Duty > 5.0f && Duty <= 95.0f)
+        {
+            imdStatValue = (uint16_t)
+                ((90.0f * 1200.0f) / (Duty - 5.0f) - 1200.0f);
+        }
+        else
+        {
+            imd_error_time = HAL_GetTick();
+            return;
+        }
+
+        if (imdStatValue < MIN_IMD_RES)
+        {
+            if (HAL_GetTick() - imd_error_time >= imd_detect_time)
+                IMD_ERROR = 1;
+        }
+        else
+        {
+            imd_error_time = HAL_GetTick();
+        }
+    }
+    else if (FREQ_NEAR(imd_frequency, IMD_FREQ_UNDERVOLT))
+    {
+        imd_error_time = HAL_GetTick();
+        IMD_ERROR = 0;
+    }
+    else if (FREQ_NEAR(imd_frequency, IMD_FREQ_SST))
+    {
+        if (Duty >= 90.0f && Duty <= 95.0f)
+        {
+            if (HAL_GetTick() - imd_error_time >= imd_detect_time)
+                IMD_ERROR = 1;
+        }
+        else
+        {
+            imd_error_time = HAL_GetTick();
+        }
+    }
+    else if (FREQ_NEAR(imd_frequency, IMD_FREQ_DEVICE_ERR) ||
+             FREQ_NEAR(imd_frequency, IMD_FREQ_EARTH_ERR))
+    {
+        IMD_ERROR = 1;
+    }
+    else
+    {
+        imd_error_time = HAL_GetTick();
+        IMD_ERROR = 0;
+    }
+}
+
+/*
+void checkIMD(void)
+{
     if (!(imdStatValue != 0 && imdStatValue < MIN_IMD_RES))
     {
         imd_error_time = HAL_GetTick();
         IMD_ERROR = 0;
+        return;
     }
 
     if (HAL_GetTick() - imd_error_time >= imd_detect_time)
@@ -491,24 +570,21 @@ void checkIMD(void)
         IMD_ERROR = 1;
     }
 }
+*/
 /*
-void send_usb_measurements(void)
+void checkIMD()
 {
-	static uint8_t next_stack = 0;
+	if(imdStatValue > MIN_IMD_RES && imdStatValue != 0 && IMD_ERROR == 0)
+	{
+		imd_error_time = HAL_GetTick();
+		IMD_ERROR = 0;
+	}
 
-    USB_Send_TS_Voltage();
-    USB_Send_TS_Current();
-    USB_Send_CellTempMin();
-    //USB_Send_LTC_AllStacks();
-
-    USB_Send_StackDetail(next_stack);
-
-    next_stack++;
-    if (next_stack >= NUM_STACK)
-    {
-        next_stack = 0;
-    }
-}*/
+	if(HAL_GetTick() - imd_error_time >= imd_detect_time){
+		IMD_ERROR = 1;
+	}
+}
+*/
 
 void send_usb_measurements(void)
 {
@@ -582,7 +658,8 @@ uint8_t getbalancingKP(uint16_t minVoltage)
 	return KP;
 }
 
-const uint8_t ltc_raw_to_stack[NUM_STACK] = {6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7};
+//const uint8_t ltc_raw_to_stack[NUM_STACK] = {6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7};
+const uint8_t ltc_raw_to_stack[NUM_STACK] = {11, 4, 1, 9, 6, 3, 0, 5, 10, 2, 7, 8};
 
 void LTCTemperature(void)
 {
@@ -612,67 +689,3 @@ void LTCTemperature(void)
         }
     }
 }
-
-/*
-void LTCTemperature(void)
-{
-    uint8_t stA[NUM_STACK][8] = {0};
-    int8_t rd = LTC6811_rdstat(7, (uint8_t *)stA);
-
-    if (rd == 0)
-    {
-        for (uint8_t i = 0; i < NUM_STACK; i++)
-        {
-            uint16_t itmp = (uint16_t)stA[i][2] | ((uint16_t)stA[i][3] << 8);
-            ltcTemps_c10[i] = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
-        }
-
-        temp_c10 = ltcTemps_c10[0];
-    }
-    else
-    {
-        for (uint8_t i = 0; i < NUM_STACK; i++)
-        {
-            ltcTemps_c10[i] = 0x7FFF;
-        }
-
-        temp_c10 = 0x7FFF;
-    }
-
-    uint8_t payload[1 + NUM_STACK * 2];
-    payload[0] = 0x2D;
-
-    for (uint8_t i = 0; i < NUM_STACK; i++)
-    {
-        payload[1 + 2*i]     = (uint8_t)(ltcTemps_c10[i] >> 8);
-        payload[1 + 2*i + 1] = (uint8_t)(ltcTemps_c10[i] & 0xFF);
-    }
-
-    USB_control("ID_LTC_Temperature", payload, sizeof(payload));
-}
-*/
-/*
-//Die Funktion ist auf jeden Fall nur für einen LTC richtig
-void LTCTemperature(void)
-{
-    uint8_t stA[8] = {0};
-    int8_t rd = LTC6811_rdstat(7, stA);
-
-    if (rd == 0)
-    {
-        uint16_t itmp = (uint16_t)stA[2] | ((uint16_t)stA[3] << 8);
-        temp_c10 = (int16_t)(((int32_t)itmp * 10 + 37) / 75 - 2730);
-    }
-    else
-    {
-        temp_c10 = 0x7FFF;
-    }
-
-    uint8_t payload[3];
-    payload[0] = 0x2D;
-    payload[1] = (uint8_t)(temp_c10 >> 8);
-    payload[2] = (uint8_t)(temp_c10 & 0xFF);
-
-    USB_control("ID_LTC_Temperature", payload, sizeof(payload));
-}
-*/
